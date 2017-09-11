@@ -8,10 +8,10 @@ import numpy as np
 # Indexed by (row, col)
 
 _ACTIONS = [
+  (0, -1),  # left
   (1, 0),   # down
   (0, 1),   # right
   (-1, 0),  # up
-  (0, -1),  # left
 ]
 
 _START_LOC = (0, 0)
