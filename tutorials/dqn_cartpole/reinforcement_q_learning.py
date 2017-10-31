@@ -250,7 +250,7 @@ def get_cart_location():
     return int(env.state[0] * scale + screen_width / 2.0)  # MIDDLE OF CART
 
 
-def get_screen():
+def get_screen(show_figure=False):
     screen = env.render(mode='rgb_array').transpose(
         (2, 0, 1))  # transpose into torch order (CHW)
     # Strip off the top and bottom of the screen
@@ -271,14 +271,20 @@ def get_screen():
     screen = np.ascontiguousarray(screen, dtype=np.float32) / 255
     screen = torch.from_numpy(screen)
     # Resize, and add a batch dimension (BCHW)
-    return resize(screen).unsqueeze(0).type(Tensor)
+    image = resize(screen).unsqueeze(0).type(Tensor)
+
+    if show_figure:
+      plt.figure(1)
+      plt.imshow(image.cpu().squeeze(0).permute(1, 2, 0).numpy(),
+                 interpolation='none')
+
+      plt.show()
+    return image
 
 env.reset()
 plt.figure()
-plt.imshow(get_screen().cpu().squeeze(0).permute(1, 2, 0).numpy(),
-           interpolation='none')
 plt.title('Example extracted screen')
-plt.show()
+get_screen(show_figure=True)
 
 
 ######################################################################
@@ -309,8 +315,8 @@ plt.show()
 BATCH_SIZE = 128
 GAMMA = 0.999
 EPS_START = 0.9
-EPS_END = 0.05
-EPS_DECAY = 200
+EPS_END = 0.2
+EPS_DECAY = 2000
 
 model = DQN()
 
@@ -435,7 +441,7 @@ def optimize_model():
 # Below, `num_episodes` is set small. You should download
 # the notebook and run lot more epsiodes.
 
-num_episodes = 10
+num_episodes = 5000
 for i_episode in range(num_episodes):
     # Initialize the environment and state
     env.reset()
