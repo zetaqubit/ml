@@ -4,6 +4,7 @@ import gym
 import logz
 import scipy.signal
 import os
+import pprint
 import time
 import inspect
 from multiprocessing import Process
@@ -171,9 +172,10 @@ def train_PG(exp_name='',
   if discrete:
     # YOUR_CODE_HERE
     sy_logits_na = build_mlp(sy_ob_no, ac_dim, 'policy')
-    sy_sampled_ac = tf.multinomial(sy_logits_na, 1)
+    sy_sampled_ac = tf.multinomial(sy_logits_na, num_samples=1)
     probs = tf.nn.softmax(sy_logits_na)
-    selected_probs = tf.gather(probs, sy_ac_na, -1)
+    mask = tf.one_hot(sy_ac_na, depth=ac_dim)
+    selected_probs = tf.boolean_mask(probs, mask)
     sy_logprob_n = tf.log(selected_probs)
 
   else:
@@ -193,7 +195,8 @@ def train_PG(exp_name='',
   # ========================================================================================#
 
   # Loss function that we'll differentiate to get the policy gradient.
-  loss = tf.reduce_mean(tf.multiply(sy_logprob_n, sy_adv_n))
+  logprob_adv = sy_logprob_n * sy_adv_n
+  loss = -tf.reduce_mean(logprob_adv)
   update_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
   # ========================================================================================#
@@ -247,7 +250,7 @@ def train_PG(exp_name='',
           time.sleep(0.05)
         obs.append(ob)
         ac = sess.run(sy_sampled_ac, feed_dict={sy_ob_no: ob[None]})
-        ac = ac[0]
+        ac = ac[0][0]
         acs.append(ac)
         ob, rew, done, _ = env.step(ac)
         rewards.append(rew)
@@ -322,7 +325,19 @@ def train_PG(exp_name='',
     # ====================================================================================#
 
     # YOUR_CODE_HERE
-    q_n = TODO
+    q_n = np.zeros([timesteps_this_batch + 1])
+    eps_end_idx = 0
+    for path in paths:
+      rewards = path['reward']
+      eps_end_idx += len(rewards)
+      if reward_to_go:
+        for steps_til_end, r in enumerate(rewards[::-1]):
+          r_idx = eps_end_idx - steps_til_end
+          q_n[r_idx - 1] = r + gamma * q_n[r_idx]
+      else:
+        total_r = np.sum(rewards)
+        q_n[eps_end_idx - len(rewards):eps_end_idx] = total_r
+    q_n = q_n[:timesteps_this_batch]
 
     # ====================================================================================#
     #                           ----------SECTION 5----------
@@ -352,7 +367,11 @@ def train_PG(exp_name='',
       # On the next line, implement a trick which is known empirically to reduce variance
       # in policy gradient methods: normalize adv_n to have mean zero and std=1.
       # YOUR_CODE_HERE
-      pass
+      mean = np.mean(adv_n)
+      std = np.std(adv_n)
+      adv_n -= mean
+      if std > 0:
+        adv_n /= std
 
     # ====================================================================================#
     #                           ----------SECTION 5----------
@@ -384,6 +403,10 @@ def train_PG(exp_name='',
     # and after an update, and then log them below.
 
     # YOUR_CODE_HERE
+    loss_new, _ = sess.run([loss, update_op],
+                           feed_dict={sy_ob_no: ob_no, sy_ac_na: ac_na, sy_adv_n: adv_n})
+
+    logz.log_tabular("Loss", loss_new)
 
 
     # Log diagnostics
