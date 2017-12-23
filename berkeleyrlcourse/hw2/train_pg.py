@@ -205,7 +205,7 @@ def train_PG(exp_name='',
   # ========================================================================================#
 
   if nn_baseline:
-    baseline_prediction = tf.squeeze(build_mlp(
+    sy_base_pred = tf.squeeze(build_mlp(
       sy_ob_no,
       1,
       "nn_baseline",
@@ -214,7 +214,9 @@ def train_PG(exp_name='',
     # Define placeholders for targets, a loss function and an update op for fitting a
     # neural network baseline. These will be used to fit the neural network baseline.
     # YOUR_CODE_HERE
-    baseline_update_op = TODO
+    sy_base_target = tf.placeholder(shape=[None], name="base_target", dtype=tf.float32)
+    baseline_loss = tf.losses.mean_squared_error(sy_base_target, sy_base_pred)
+    baseline_update_op = tf.train.AdamOptimizer(learning_rate).minimize(baseline_loss)
 
   # ========================================================================================#
   # Tensorflow Engineering: Config, Session, Variable initialization
@@ -352,8 +354,11 @@ def train_PG(exp_name='',
       # Hint #bl1: rescale the output from the nn_baseline to match the statistics
       # (mean and std) of the current or previous batch of Q-values. (Goes with Hint
       # #bl2 below.)
-
-      b_n = TODO
+      q_mean, q_std = np.mean(q_n), np.std(q_n)
+      baseline_pred = sess.run(sy_base_pred, feed_dict={sy_ob_no: ob_no})
+      #b_mean, b_std = np.mean(baseline_pred), np.std(baseline_pred)
+      #baseline_pred = (baseline_pred - b_mean) / b_std
+      b_n = baseline_pred * q_std + q_mean
       adv_n = q_n - b_n
     else:
       adv_n = q_n.copy()
@@ -389,7 +394,11 @@ def train_PG(exp_name='',
       # targets to have mean zero and std=1. (Goes with Hint #bl1 above.)
 
       # YOUR_CODE_HERE
-      pass
+      q_normalized = (q_n - q_mean) / q_std
+      baseline_loss_new, baseline_pred_new, _ = sess.run(
+          [baseline_loss, sy_base_pred, baseline_update_op],
+          feed_dict={sy_ob_no: ob_no, sy_base_target: q_normalized})
+      logz.log_tabular('Baseline Loss', baseline_loss_new)
 
     # ====================================================================================#
     #                           ----------SECTION 4----------
