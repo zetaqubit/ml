@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 import gym
+import roboschool
 import logz
 import scipy.signal
 import os
@@ -60,7 +61,7 @@ def train_PG(exp_name='',
              max_path_length=None,
              learning_rate=5e-3,
              reward_to_go=True,
-             animate=True,
+             render_every_n_eps=-1,
              logdir=None,
              normalize_advantages=True,
              nn_baseline=False,
@@ -180,13 +181,15 @@ def train_PG(exp_name='',
 
   else:
     # YOUR_CODE_HERE
-    sy_mean = build_mlp(sy_ob_no, ac_dim, 'policy')
-    sy_logstd = tf.get_variable('logstd', shape=sy_mean.get_shape(),
-                                initializer=tf.initializers.zeros)
+    mean_and_logstd = build_mlp(sy_ob_no, 2 * ac_dim, 'policy')
+    sy_mean = tf.slice(mean_and_logstd, [0, 0], [-1, ac_dim])
+    sy_logstd = tf.slice(mean_and_logstd, [0, ac_dim], [-1, ac_dim])
+    #logstd_t = tf.zeros([None, ac_dim])
+    #sy_logstd = tf.get_variable('logstd', initializer=logstd_t)
     std = tf.exp(sy_logstd)
-    sy_sampled_ac = sy_mean + std * tf.random_normal(sy_mean.get_shape())
+    sy_sampled_ac = sy_mean + std * tf.random_normal(tf.shape(sy_mean))
     dist = tf.contrib.distributions.MultivariateNormalDiag(sy_mean, std)
-    probs = dist.pdf(sy_ac_na)
+    probs = dist.prob(sy_ac_na)
     sy_logprob_n = tf.log(probs)  # Hint: Use the log probability under a multivariate gaussian.
 
   # ========================================================================================#
@@ -244,7 +247,8 @@ def train_PG(exp_name='',
     while True:
       ob = env.reset()
       obs, acs, rewards = [], [], []
-      animate_this_episode = (len(paths) == 0 and (itr % 10 == 0) and animate)
+      animate_this_episode = (len(paths) == 0 and render_every_n_eps >= 0 and
+                              (itr % render_every_n_eps == 0))
       steps = 0
       while True:
         if animate_this_episode:
@@ -252,13 +256,15 @@ def train_PG(exp_name='',
           time.sleep(0.05)
         obs.append(ob)
         ac = sess.run(sy_sampled_ac, feed_dict={sy_ob_no: ob[None]})
-        ac = ac[0][0]
+        ac = ac[0][0] if discrete else ac[0]
         acs.append(ac)
         ob, rew, done, _ = env.step(ac)
         rewards.append(rew)
         steps += 1
         if done or steps > max_path_length:
           break
+      if animate_this_episode:
+        env.render(close=True)
       path = {"observation": np.array(obs),
               "reward": np.array(rewards),
               "action": np.array(acs)}
@@ -440,7 +446,7 @@ def main():
   parser = argparse.ArgumentParser()
   parser.add_argument('env_name', type=str)
   parser.add_argument('--exp_name', type=str, default='vpg')
-  parser.add_argument('--render', action='store_true')
+  parser.add_argument('--render_eps', type=int, default=-1)
   parser.add_argument('--discount', type=float, default=1.0)
   parser.add_argument('--n_iter', '-n', type=int, default=100)
   parser.add_argument('--batch_size', '-b', type=int, default=1000)
@@ -480,7 +486,7 @@ def main():
         max_path_length=max_path_length,
         learning_rate=args.learning_rate,
         reward_to_go=args.reward_to_go,
-        animate=args.render,
+        render_every_n_eps=args.render_eps,
         logdir=os.path.join(logdir, '%d' % seed),
         normalize_advantages=not (args.dont_normalize_advantages),
         nn_baseline=args.nn_baseline,
