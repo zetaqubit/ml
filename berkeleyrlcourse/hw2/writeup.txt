@@ -1,0 +1,6 @@
+4.2
+
+- Without advantage centering, reward-to-go did better (green curve higher blue for both small batch and large batch).
+- Advantage centering reduces the variability in the algorithm's performance. The difference was much more pronounced in the small batch case.
+- Both reward-to-go and advantage centering reduce the variance of the gradient estimator. rtg sums over fewer numbers, so the variance goes down. Empirical results support this.
+- Using a large batch size resulted in faster convergence (and actually enabled the convergence of rtg-dna.
