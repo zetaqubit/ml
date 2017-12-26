@@ -68,8 +68,7 @@ def train_PG(exp_name='',
              seed=0,
              # network arguments
              n_layers=1,
-             size=32
-             ):
+             size=32):
   start = time.time()
 
   # Configure output directory for logging
@@ -184,12 +183,18 @@ def train_PG(exp_name='',
     mean_and_logstd = build_mlp(sy_ob_no, 2 * ac_dim, 'policy')
     sy_mean = tf.slice(mean_and_logstd, [0, 0], [-1, ac_dim])
     sy_logstd = tf.slice(mean_and_logstd, [0, ac_dim], [-1, ac_dim])
-    #logstd_t = tf.zeros([None, ac_dim])
-    #sy_logstd = tf.get_variable('logstd', initializer=logstd_t)
+    # logstd_t = tf.zeros([None, ac_dim])
+    # sy_logstd = tf.get_variable('logstd', initializer=logstd_t)
     std = tf.exp(sy_logstd)
     sy_sampled_ac = sy_mean + std * tf.random_normal(tf.shape(sy_mean))
     dist = tf.contrib.distributions.MultivariateNormalDiag(sy_mean, std)
     probs = dist.prob(sy_ac_na)
+
+    # probs = tf.Print(probs, [std], summarize=10)
+    # probs = tf.Print(probs, [sy_mean], summarize=10)
+    # probs = tf.Print(probs, [sy_ac_na], summarize=10)
+    # probs = tf.Print(probs, [probs], summarize=10)
+
     sy_logprob_n = tf.log(probs)  # Hint: Use the log probability under a multivariate gaussian.
 
   # ========================================================================================#
@@ -200,7 +205,15 @@ def train_PG(exp_name='',
   # Loss function that we'll differentiate to get the policy gradient.
   logprob_adv = sy_logprob_n * sy_adv_n
   loss = -tf.reduce_mean(logprob_adv)
-  update_op = tf.train.AdamOptimizer(learning_rate).minimize(loss)
+  optimizer = tf.train.AdamOptimizer(learning_rate)
+  update_op = optimizer.minimize(loss)
+
+  # global_step = tf.Variable(0, trainable=False)
+  # sy_learning_rate = tf.train.exponential_decay(learning_rate, global_step,
+  #                                               lr_decay_steps, lr_decay_rate,
+  #                                               staircase=True)
+  # optimizer = tf.train.GradientDescentOptimizer(sy_learning_rate)
+  # update_op = optimizer.minimize(loss, global_step=global_step)
 
   # ========================================================================================#
   #                           ----------SECTION 5----------
@@ -238,7 +251,7 @@ def train_PG(exp_name='',
 
   total_timesteps = 0
 
-  for itr in range(n_iter):
+  for itr in range(1, n_iter + 1):
     print("********** Iteration %i ************" % itr)
 
     # Collect paths until we have enough timesteps
@@ -423,7 +436,6 @@ def train_PG(exp_name='',
 
     logz.log_tabular("Loss", loss_new)
 
-
     # Log diagnostics
     returns = [path["reward"].sum() for path in paths]
     ep_lengths = [pathlength(path) for path in paths]
@@ -483,11 +495,11 @@ def main():
       params_str += name + value_str
     return params_str
 
-
   #logdir = args.exp_name + '_' + args.env_name + '_' + time.strftime(
   #  "%d-%m-%Y_%H-%M-%S")
-  logdir = '{}:{}:{}:{}'.format(args.env_name, args.exp_name, get_params_str(),
-                                time.strftime('%Y-%m-%d:%H-%M-%S'))
+  logdir = '{}-{}-{}-{}'.format(args.env_name, args.exp_name,
+                                time.strftime('%Y-%m-%d:%H-%M-%S'),
+                                get_params_str())
   logdir = os.path.join('data', logdir)
 
   if not (os.path.exists('data')):
@@ -517,8 +529,7 @@ def main():
         nn_baseline=args.nn_baseline,
         seed=seed,
         n_layers=args.n_layers,
-        size=args.size
-      )
+        size=args.size)
 
     # Awkward hacky process runs, because Tensorflow does not like
     # repeatedly calling train_PG in the same thread.

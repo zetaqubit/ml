@@ -1,6 +1,24 @@
-4.2
+4.2.1: CartpPole-v0
 
 - Without advantage centering, reward-to-go did better (green curve higher blue for both small batch and large batch).
 - Advantage centering reduces the variability in the algorithm's performance. The difference was much more pronounced in the small batch case.
 - Both reward-to-go and advantage centering reduce the variance of the gradient estimator. rtg sums over fewer numbers, so the variance goes down. Empirical results support this.
 - Using a large batch size resulted in faster convergence (and actually enabled the convergence of rtg-dna.
+
+4.2.2: RoboschoolInvertedPendulum-v1
+
+Solved in 50 iters using
+- batch_size: 3000
+- lr: 0.01
+- rtg
+- layers: 3
+- size: 128
+
+
+python train_pg.py RoboschoolInvertedPendulum-v1 --exp_name psearch -rtg -l 3 -s 128 -b 3000 -lr 0.01
+
+5:
+
+Use state-dependent baseline improves the performance. Surprisingly, it didn't reduce the variance as much as I'd expected. Investigating...
+
+python train_pg.py RoboschoolInvertedPendulum-v1 --exp_name 5_bl -rtg -l 3 -s 128 -b 3000 -lr 0.005 -e 5 [-bl]
