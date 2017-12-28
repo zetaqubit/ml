@@ -22,3 +22,7 @@ python train_pg.py RoboschoolInvertedPendulum-v1 --exp_name psearch -rtg -l 3 -s
 Use state-dependent baseline improves the performance. Surprisingly, it didn't reduce the variance as much as I'd expected. Investigating...
 
 python train_pg.py RoboschoolInvertedPendulum-v1 --exp_name 5_bl -rtg -l 3 -s 128 -b 3000 -lr 0.005 -e 5 [-bl]
+
+
+More Stable:
+python train_pg.py RoboschoolInvertedPendulum-v1 --exp_name 5_bl -n 100 -b 5000 -rtg -l 4 -s 32 -lr 0.001 -e 5 -bl

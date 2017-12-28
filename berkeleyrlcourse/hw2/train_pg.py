@@ -537,6 +537,8 @@ def main():
     p.start()
     p.join()
 
+  print('Experiment logged to {}'.format(logdir))
+
 
 if __name__ == "__main__":
   main()
