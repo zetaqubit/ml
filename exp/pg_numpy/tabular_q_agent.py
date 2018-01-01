@@ -3,7 +3,7 @@ import numpy as np
 
 from gym.spaces import discrete
 
-import utils
+from rl.exp.pg_numpy import utils
 
 class TabularQAgent(object):
   """

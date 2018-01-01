@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from IPython.display import display
-from JSAnimation.IPython_display import display_animation
+#from JSAnimation.IPython_display import display_animation
 from matplotlib import animation
 from PIL import Image, ImageDraw, ImageFont
 
@@ -28,7 +28,8 @@ def _display_as_gif(patch, sequence):
 
   anim = animation.FuncAnimation(plt.gcf(), animate,
       frames=len(sequence), interval=50)
-  display(display_animation(anim, default_mode='loop'))
+  #display(display_animation(anim, default_mode='loop'))
+  display(anim.to_jshtml())
 
 
 def text_to_array(text):
