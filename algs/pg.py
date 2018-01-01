@@ -77,21 +77,19 @@ class Policy(object):
     return out_np
 
   def update(self, eps_batch, discount=0.9):
+    metrics = {'r_per_eps': []}
+
     # Compute cumulative discounted reward for each episode.
     qs_batch = []
     for eps in eps_batch:
       qs = np.array([sar.r for sar in eps])
+      metrics['r_per_eps'].append(np.sum(qs))
       for t in range(len(eps) - 1, 0, -1):
         qs[t - 1] += discount * qs[t]
       qs_batch.append(qs)
     qs_batch = np.concatenate(qs_batch)
     qs_var = tha.Variable(th.Tensor(qs_batch).type(dtype))
     qs_var = (qs_var - qs_var.mean()) / qs_var.std()
-
-    rs_batch = []
-    for eps in eps_batch:
-      rs_batch.append([np.sum([sar.r for sar in eps])])
-    print('Cumulative rewards: {}'.format(np.array(rs_batch).mean()))
 
     # Compute log-prob of the chosen actions under the current policy.
     acs_batch = np.array([sar.a for eps in eps_batch for sar in eps])
@@ -113,4 +111,6 @@ class Policy(object):
     self.optimizer.zero_grad()
     loss.backward()
     self.optimizer.step()
+
+    return metrics
 
