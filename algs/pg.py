@@ -5,6 +5,7 @@ import gym
 import numpy as np
 import torch as th
 from torch import autograd as tha
+from torch.nn import functional as thf
 
 dtype = th.cuda.FloatTensor
 
@@ -16,13 +17,15 @@ class Environment(object):
     self.env = gym.make(env_name)
 
     # Observation and action sizes
-    discrete = isinstance(self.env.action_space, gym.spaces.Discrete)
-    assert discrete
-
+    self.discrete_ac = isinstance(self.env.action_space, gym.spaces.Discrete)
     self.ob_dim = self.env.observation_space.shape[0]
-    self.ac_dim = self.env.action_space.n
-    self.max_episode_steps = max_episode_steps or self.env.spec.max_episode_steps
-    self.env._max_episode_steps = self.max_episode_steps
+    self.ac_dim = (self.env.action_space.n if self.discrete_ac else
+                   self.env.action_space.shape[0])
+    if max_episode_steps:
+      self.max_episode_steps = max_episode_steps
+      self.env._max_episode_steps = self.max_episode_steps
+    else:
+      self.max_episode_steps = self.env.spec.max_episode_steps
 
   def sample_rollouts(self, policy, batch_size, render=False):
     """Samples complete episodes of at least |batch_size| under |policy|.
@@ -43,7 +46,7 @@ class Environment(object):
         episodes.append(episode)
       if render:
         self.env.render()
-      ac = policy(ob)[0]
+      ac = policy(ob)
       ob, r, env_need_reset, _ = self.env.step(ac)
       episode.append(SAR(ob, ac, r))
       steps += 1
@@ -62,6 +65,7 @@ class Policy(object):
     hidden_dim = 64
     model = th.nn.Sequential(
       th.nn.Linear(self.obs_dim, hidden_dim),
+      th.nn.ReLU(),
       th.nn.Linear(hidden_dim, self.action_dim),
       th.nn.LogSoftmax(dim=1),
     )
@@ -74,7 +78,7 @@ class Policy(object):
     probs = th.exp(log_probs).squeeze()
     ac = th.multinomial(probs, 1)
     out_np = ac.cpu().numpy()
-    return out_np
+    return out_np[0]
 
   def update(self, eps_batch, discount=0.9):
     metrics = {'r_per_eps': []}
@@ -114,3 +118,76 @@ class Policy(object):
 
     return metrics
 
+
+class ContinuousActionPolicy(object):
+  class Model(th.nn.Module):
+    def __init__(self, obs_dim, action_dim):
+      super().__init__()
+      hidden_dim = 64
+      self.base_nn = th.nn.Sequential(
+        th.nn.Linear(obs_dim, hidden_dim),
+        th.nn.ReLU(),
+        th.nn.Linear(hidden_dim, hidden_dim),
+        th.nn.ReLU(),
+      )
+      self.means = th.nn.Linear(hidden_dim, action_dim)
+      self.logstds = th.nn.Linear(hidden_dim, action_dim)
+
+    def forward(self, x):
+      x = self.base_nn(x)
+      return self.means(x), self.logstds(x)
+
+  def __init__(self, obs_dim, action_dim, lr=0.005):
+    self.model = self.Model(obs_dim, action_dim).cuda()
+    self.optimizer = th.optim.Adam(self.model.parameters(), lr)
+
+  def get_action(self, obs_np):
+    dist = self._get_action_distribution(obs_np)
+    ac = dist.sample()
+    out_np = ac.data.cpu().numpy()
+    return out_np
+
+  def _get_action_distribution(self, obs_np):
+    obs_var = tha.Variable(th.Tensor(obs_np).type(dtype))
+    means, logstds = self.model(obs_var)
+    stds = th.exp(logstds)
+    dist = th.distributions.Normal(means, stds)
+    return dist
+
+  def update(self, eps_batch, discount=0.9):
+    metrics = {'r_per_eps': []}
+
+    # Compute cumulative discounted reward for each episode.
+    qs_batch = []
+    for eps in eps_batch:
+      qs = np.array([sar.r for sar in eps])
+      metrics['r_per_eps'].append(np.sum(qs))
+      for t in range(len(eps) - 1, 0, -1):
+        qs[t - 1] += discount * qs[t]
+      qs_batch.append(qs)
+    qs_batch = np.concatenate(qs_batch)
+    qs_var = tha.Variable(th.Tensor(qs_batch).type(dtype))
+    qs_var = (qs_var - qs_var.mean()) / qs_var.std()
+
+    # Compute log-prob of the chosen actions under the current policy.
+    acs_batch = np.array([sar.a for eps in eps_batch for sar in eps])
+    obs_batch = np.array([sar.s for eps in eps_batch for sar in eps])
+    acs_var = tha.Variable(th.from_numpy(acs_batch).cuda())
+    obs_var = tha.Variable(th.Tensor(obs_batch).type(dtype))
+    dist = self._get_action_distribution(obs_batch)
+    log_probs = dist.log_prob(acs_var)
+    #print(dist.mean[:5], dist.std[:5], acs_var[:5], th.exp(log_probs[:5]))
+
+    # Scale by cumulative future rewards.
+    log_p_q = log_probs * qs_var
+
+    # Compute loss by negating the goal function J.
+    j = log_p_q.sum() / len(eps_batch)
+    loss = -j
+
+    # Compute gradients.
+    self.optimizer.zero_grad()
+    loss.backward()
+    self.optimizer.step()
+
+    return metrics
