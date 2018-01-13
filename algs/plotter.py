@@ -8,13 +8,10 @@ class Plotter(object):
 
   def __init__(self):
     self.points = collections.defaultdict(list)
-    self.figures = {}
+    self.figures = collections.defaultdict(plt.figure)
 
   def add_data(self, key, x, y):
     self.points[key].append(Point(x, y))
-
-  def create_figs(self, keys):
-    self.figures.update({k: plt.figure() for k in keys})
 
   def get_fig(self, key):
     return self.figures[key]
