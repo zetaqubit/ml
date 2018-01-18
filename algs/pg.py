@@ -111,6 +111,8 @@ class Policy(object):
     j = log_p_q.sum() / len(eps_batch)
     loss = -j
 
+    metrics['loss'] = loss.data.cpu().numpy()[0]
+
     # Compute gradients.
     self.optimizer.zero_grad()
     loss.backward()
@@ -121,11 +123,12 @@ class Policy(object):
 
 class ContinuousActionPolicy(object):
   class Model(th.nn.Module):
-    def __init__(self, obs_dim, action_dim):
+    def __init__(self, obs_dim, action_dim, hidden_dim):
       super().__init__()
-      hidden_dim = 64
       self.base_nn = th.nn.Sequential(
         th.nn.Linear(obs_dim, hidden_dim),
+        th.nn.ReLU(),
+        th.nn.Linear(hidden_dim, hidden_dim),
         th.nn.ReLU(),
         th.nn.Linear(hidden_dim, hidden_dim),
         th.nn.ReLU(),
@@ -137,9 +140,10 @@ class ContinuousActionPolicy(object):
       x = self.base_nn(x)
       return self.means(x), self.logstds(x)
 
-  def __init__(self, obs_dim, action_dim, lr=0.005):
-    self.model = self.Model(obs_dim, action_dim).cuda()
+  def __init__(self, obs_dim, action_dim, hidden_dim=128, lr=0.001):
+    self.model = self.Model(obs_dim, action_dim, hidden_dim).cuda()
     self.optimizer = th.optim.Adam(self.model.parameters(), lr)
+    #self.optimizer = th.optim.SGD(self.model.parameters(), lr, momentum=0.9)
 
   def get_action(self, obs_np):
     dist = self._get_action_distribution(obs_np)
@@ -154,11 +158,12 @@ class ContinuousActionPolicy(object):
     dist = th.distributions.Normal(means, stds)
     return dist
 
-  def update(self, eps_batch, discount=0.9):
-    metrics = {'r_per_eps': []}
+  def update(self, eps_batch, discount=1.0):
+    metrics = collections.OrderedDict()
 
     # Compute cumulative discounted reward for each episode.
     qs_batch = []
+    metrics['r_per_eps'] = []
     for eps in eps_batch:
       qs = np.array([sar.r for sar in eps])
       metrics['r_per_eps'].append(np.sum(qs))
@@ -167,7 +172,9 @@ class ContinuousActionPolicy(object):
       qs_batch.append(qs)
     qs_batch = np.concatenate(qs_batch)
     qs_var = tha.Variable(th.Tensor(qs_batch).type(dtype))
+    metrics['qs'] = qs_var.data.cpu().numpy()
     qs_var = (qs_var - qs_var.mean()) / qs_var.std()
+    qs_var = qs_var.unsqueeze(dim=1)
 
     # Compute log-prob of the chosen actions under the current policy.
     acs_batch = np.array([sar.a for eps in eps_batch for sar in eps])
@@ -176,14 +183,16 @@ class ContinuousActionPolicy(object):
     obs_var = tha.Variable(th.Tensor(obs_batch).type(dtype))
     dist = self._get_action_distribution(obs_batch)
     log_probs = dist.log_prob(acs_var)
-    #print(dist.mean[:5], dist.std[:5], acs_var[:5], th.exp(log_probs[:5]))
+    metrics['ac_mean'] = dist.mean.data.cpu().numpy()
+    metrics['ac_std'] = dist.std.data.cpu().numpy()
 
     # Scale by cumulative future rewards.
     log_p_q = log_probs * qs_var
 
     # Compute loss by negating the goal function J.
-    j = log_p_q.sum() / len(eps_batch)
+    j = log_p_q.mean()
     loss = -j
+    metrics['loss'] = loss.data.cpu().numpy()[0]
 
     # Compute gradients.
     self.optimizer.zero_grad()
