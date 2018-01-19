@@ -134,13 +134,13 @@ class ContinuousActionPolicy(object):
         th.nn.ReLU(),
       )
       self.means = th.nn.Linear(hidden_dim, action_dim)
-      self.logstds = th.nn.Linear(hidden_dim, action_dim)
+      self.logstds = th.nn.Parameter(th.zeros((1, action_dim)).type(dtype))
 
     def forward(self, x):
       x = self.base_nn(x)
-      return self.means(x), self.logstds(x)
+      return self.means(x), self.logstds
 
-  def __init__(self, obs_dim, action_dim, hidden_dim=128, lr=0.001):
+  def __init__(self, obs_dim, action_dim, hidden_dim=64, lr=0.001):
     self.model = self.Model(obs_dim, action_dim, hidden_dim).cuda()
     self.optimizer = th.optim.Adam(self.model.parameters(), lr)
     #self.optimizer = th.optim.SGD(self.model.parameters(), lr, momentum=0.9)
