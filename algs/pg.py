@@ -1,4 +1,7 @@
+"""Policy gradient implementation for discrete and continuous action spaces."""
+
 import collections
+import copy
 from pprint import pprint
 
 import gym
@@ -200,3 +203,14 @@ class ContinuousActionPolicy(object):
     self.optimizer.step()
 
     return metrics
+
+
+class PolicySnapshots(object):
+  def __init__(self):
+    self.policies = {}
+
+  def snapshot(self, episode, policy):
+    self.policies[episode] = copy.deepcopy(policy)
+
+  def get(self, episode):
+    return self.policies[episode]
