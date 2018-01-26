@@ -3,8 +3,7 @@
 """
 Code to load an expert policy and generate roll-out data for behavioral cloning.
 Example usage:
-    python run_expert.py experts/Humanoid-v1.pkl Humanoid-v1 --render \
-            --num_rollouts 20
+    python run_expert.py Humanoid-v1 --num_rollouts 20 --render
 
 Author of this script and included expert policies: Jonathan Ho (hoj@openai.com)
 """
@@ -22,7 +21,6 @@ from rl.algs import util
 def main():
   import argparse
   parser = argparse.ArgumentParser()
-  parser.add_argument('expert_policy_file', type=str)
   parser.add_argument('envname', type=str)
   parser.add_argument('--render', action='store_true')
   parser.add_argument("--max_timesteps", type=int)
@@ -31,7 +29,8 @@ def main():
   args = parser.parse_args()
 
   print('loading and building expert policy')
-  policy_fn = load_policy.load_policy(args.expert_policy_file)
+  expert_policy_file = os.path.join('experts', args.envname + '.pkl')
+  policy_fn = load_policy.load_policy(expert_policy_file)
   print('loaded and built')
 
   with tf.Session():
@@ -52,6 +51,7 @@ def main():
       steps = 0
       while not done:
         action = policy_fn(obs[None, :])
+        action = action.squeeze()
         observations.append(obs)
         actions.append(action)
         obs, r, done, _ = env.step(action)
@@ -72,7 +72,7 @@ def main():
                    'actions': np.array(actions)}
 
     # Pickle the expert_data.
-    rollout_dir = os.path.join('experts_rollouts', args.envname)
+    rollout_dir = os.path.join('expert_rollouts', args.envname)
     os.makedirs(rollout_dir, exist_ok=True)
     rollout_path = util.get_next_filename(
         rollout_dir,
