@@ -9,6 +9,7 @@ Example usage:
 Author of this script and included expert policies: Jonathan Ho (hoj@openai.com)
 """
 
+import os
 import pickle
 import tensorflow as tf
 import numpy as np
@@ -16,6 +17,7 @@ import tf_util
 import gym
 import load_policy
 
+from rl.algs import util
 
 def main():
   import argparse
@@ -68,6 +70,16 @@ def main():
 
     expert_data = {'observations': np.array(observations),
                    'actions': np.array(actions)}
+
+    # Pickle the expert_data.
+    rollout_dir = os.path.join('experts_rollouts', args.envname)
+    os.makedirs(rollout_dir, exist_ok=True)
+    rollout_path = util.get_next_filename(
+        rollout_dir,
+        prefix='n' + str(args.num_rollouts) + '_',
+        extension='.pkl')
+    with open(rollout_path, 'wb') as fd:
+      pickle.dump(expert_data, fd)
 
 if __name__ == '__main__':
   main()
