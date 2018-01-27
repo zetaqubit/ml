@@ -30,21 +30,29 @@ class Environment(object):
     else:
       self.max_episode_steps = self.env.spec.max_episode_steps
 
-  def sample_rollouts(self, policy, batch_size, render=False):
+  def sample_rollouts(self, policy, batch_size=None, num_episodes=None,
+                      render=False):
     """Samples complete episodes of at least |batch_size| under |policy|.
 
     Each episode is of at most self.max_episode_steps.
-    Complete episodes (up to max_episode_steps) are sampled until at least
-    |batch_size|.
+    If batch_size is specified, complete episodes (up to max_episode_steps) are
+      sampled until at least |batch_size| steps.
+    If num_episodes is specified, |num_episodes| full episodes are sampled.
     """
+    assert batch_size or num_episodes
+
     episodes = []
     env_need_reset = True
+    episode_i = 0
     steps = 0
     while True:
       if env_need_reset:
         ob = self.env.reset()
-        if steps >= batch_size:
+        if batch_size and steps >= batch_size:
           break
+        if num_episodes and episode_i >= num_episodes:
+          break
+        episode_i += 1
         episode = []
         episodes.append(episode)
       if render:

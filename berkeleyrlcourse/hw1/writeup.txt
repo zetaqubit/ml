@@ -1,0 +1,17 @@
+Section 3: Behavior Cloning
+
+Hopper-v1:
+Expert  Cloned  
+10,000  3,300   
+
+Ant-v1:
+Expert  Cloned  
+4,555   4,600   
+
+HalfCheetah-v1:
+Expert  Cloned  
+4,130   4,011   
+
+Humanoid-v1:
+Expert  Cloned
+10,000
