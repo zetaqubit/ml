@@ -14,4 +14,12 @@ Expert  Cloned
 
 Humanoid-v1:
 Expert  Cloned
-10,000
+10,000  894
+
+Reacher-v1:
+Expert  Cloned
+-4.51   -3.7
+
+Walker2d-v1:
+Expert  Cloned
+5522    2957

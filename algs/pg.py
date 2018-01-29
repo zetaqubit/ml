@@ -2,6 +2,7 @@
 
 import collections
 import copy
+import math
 from pprint import pprint
 
 import numpy as np
@@ -58,23 +59,41 @@ class DiscreteActionModel(th.nn.Module):
 
 
 class ContinuousActionModel(th.nn.Module):
-  def __init__(self, obs_dim, action_dim, hidden_dim=64):
+  def __init__(self, obs_dim, action_dim,
+               shared_layers=(64, 64, 64),
+               action_layers=(64,),
+               model_std=False,
+               min_std=None):
     super().__init__()
-    self.base_nn = th.nn.Sequential(
-      th.nn.Linear(obs_dim, hidden_dim),
-      th.nn.ReLU(),
-      th.nn.Linear(hidden_dim, hidden_dim),
-      th.nn.ReLU(),
-      th.nn.Linear(hidden_dim, hidden_dim),
-      th.nn.ReLU(),
-    )
-    self.means = th.nn.Linear(hidden_dim, action_dim)
-    self.logstds = th.nn.Parameter(th.zeros((1, action_dim)).type(dtype))
+
+    base_nn_dims = (obs_dim,) + shared_layers
+    self.base_nn = self._construct_nn(base_nn_dims, last_fn=th.nn.ReLU)
+    mean_std_dims = (shared_layers[-1],) + action_layers + (action_dim,)
+    self.means = self._construct_nn(mean_std_dims)
+    if model_std:
+      self.logstds = self._construct_nn(mean_std_dims)
+    else:
+      logstds = th.nn.Parameter(th.zeros(1, action_dim)).type(dtype)
+      self.logstds = lambda _: logstds
+    self.min_logstd = math.log(min_std) if min_std else None
     self.cuda()
+
+  @staticmethod
+  def _construct_nn(dims, fn=th.nn.ReLU, last_fn=None):
+    layers = []
+    for i in range(1, len(dims)):
+      layers.append(th.nn.Linear(dims[i - 1], dims[i]))
+      activation_fn = fn if i < len(dims) - 1 else last_fn
+      if activation_fn:
+        layers.append(activation_fn())
+    return th.nn.Sequential(*layers)
 
   def forward(self, x):
     x = self.base_nn(x)
-    return self.means(x), self.logstds
+    means, logstds = self.means(x), self.logstds(x)
+    if self.min_logstd is not None:
+      logstds = th.clamp(logstds, min=self.min_logstd)
+    return means, logstds
 
   def get_action(self, obs_np):
     """Samples an action to be taken by the policy given observations.
