@@ -8,17 +8,23 @@ import numpy as np
 
 SAR = collections.namedtuple('SAR', 's a r')
 
+
 class Environment(object):
   def __init__(self, env_name='CartPole-v0', max_episode_steps=None):
-    self.env = gym.make(env_name)
+    self.env_name = env_name
+    self.max_episode_steps = max_episode_steps
+    self.env = None
+    self.reset()
 
     # Observation and action sizes
     self.discrete_ac = isinstance(self.env.action_space, gym.spaces.Discrete)
-    self.ob_dim = self.env.observation_space.shape[0]
-    self.ac_dim = (self.env.action_space.n if self.discrete_ac else
-    self.env.action_space.shape[0])
-    if max_episode_steps:
-      self.max_episode_steps = max_episode_steps
+    self.obs_dim = self.env.observation_space.shape[0]
+    self.acs_dim = (self.env.action_space.n if self.discrete_ac
+                    else self.env.action_space.shape[0])
+
+  def reset(self):
+    self.env = gym.make(self.env_name)
+    if self.max_episode_steps:
       self.env._max_episode_steps = self.max_episode_steps
     else:
       self.max_episode_steps = self.env.spec.max_episode_steps
@@ -67,5 +73,6 @@ class Environment(object):
       return rs
     finally:
       self.env.render(close=True)
+      self.reset()
 
 
