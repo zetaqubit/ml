@@ -1,4 +1,8 @@
-import pickle, tensorflow as tf, tf_util, numpy as np
+import numpy as np
+import pickle
+import tensorflow as tf
+
+from rl.berkeleyrlcourse.hw1 import tf_util
 
 
 def load_policy(filename):
