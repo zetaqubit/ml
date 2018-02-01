@@ -79,8 +79,9 @@ class ContinuousActionModel(th.nn.Module):
     if model_std:
       self.logstds = _construct_nn(mean_std_dims)
     else:
-      logstds = th.nn.Parameter(th.zeros(1, acs_dim)).type(dtype)
-      self.logstds = lambda _: logstds
+      # Must assign th.nn.Parameter to self to be included in parameters().
+      self._logstds = th.nn.Parameter(th.zeros(1, acs_dim).type(dtype))
+      self.logstds = lambda _: self._logstds
     self.min_logstd = math.log(min_std) if min_std else None
     self.cuda()
 
