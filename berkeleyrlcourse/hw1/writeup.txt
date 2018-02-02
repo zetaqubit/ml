@@ -23,3 +23,29 @@ Expert  Cloned
 Walker2d-v1:
 Expert  Cloned
 5522    2957
+
+
+Section 4: DAgger
+Humanoid:
+Expert  Cloned  DAgger
+10,000  7295    10,000
+
+Hopper-v1:
+Expert  Cloned  DAgger
+3,780  3,300    3780
+
+Ant-v1:
+Expert  Cloned  DAgger
+4,555   4,600   4,700
+
+HalfCheetah-v1:
+Expert  Cloned  DAgger
+4,130   4,011   4,090
+
+Reacher-v1:
+Expert  Cloned  DAgger
+-4.51   -3.7    -3.5
+
+Walker2d-v1:
+Expert  Cloned  DAgger
+5522    2957    5562

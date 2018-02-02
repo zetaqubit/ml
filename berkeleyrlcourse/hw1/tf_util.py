@@ -119,7 +119,7 @@ ALREADY_INITIALIZED = set()
 
 def initialize():
   new_variables = set(tf.global_variables()) - ALREADY_INITIALIZED
-  get_session().run(tf.initialize_variables(new_variables))
+  get_session().run(tf.variables_initializer(new_variables))
   ALREADY_INITIALIZED.update(new_variables)
 
 
