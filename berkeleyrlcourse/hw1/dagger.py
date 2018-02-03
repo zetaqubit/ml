@@ -1,4 +1,5 @@
-# Section 2 and 3: Behavior Cloning.
+"""PyTorch implementation of Behavior Cloning and DAgger algorithms.
+"""
 
 import collections
 import os
@@ -7,15 +8,13 @@ import tensorflow as tf
 
 import numpy as np
 import torch as th
-from torch import autograd as tha
 from torch.utils import data
 
-from rl.algs import experiment
-from rl.algs import pg
 from rl.berkeleyrlcourse.hw1 import load_policy
 from rl.berkeleyrlcourse.hw1 import tf_util
-
-dtype = th.cuda.FloatTensor
+from rl.algs import experiment
+from rl.algs import model
+from rl.algs import policy
 
 
 class ExpertDataset:
@@ -76,6 +75,7 @@ class ExpertDataset:
 
 
 class ExpertPolicy:
+  """Wraps pre-trained TF expert agent from hw2/experts."""
   def __init__(self, file_path):
     self.policy_fn = load_policy.load_policy(file_path)
 
@@ -84,30 +84,6 @@ class ExpertPolicy:
       tf_util.initialize()
       return self.policy_fn(obs_np)
 
-
-class ImitationPolicy:
-  """Continuous action policy, trained on imitation."""
-  def __init__(self, model, lr=0.001):
-    self.model = model
-    self.optimizer = th.optim.Adam(self.model.parameters(), lr)
-
-  def get_action(self, obs_np):
-    return self.model.get_action(obs_np)
-
-  def step(self, obs_batch, acs_batch):
-    metrics = {}
-    obs_var = tha.Variable(obs_batch.type(dtype))
-    acs_var = tha.Variable(acs_batch.type(dtype))
-    log_probs = self.model.log_probs(obs_var, acs_var, metrics)
-    loss = -log_probs.mean()
-
-    metrics['loss'] = loss.data.cpu().numpy()[0]
-
-    self.optimizer.zero_grad()
-    loss.backward()
-    self.optimizer.step()
-
-    return metrics
 
 TrainParams = collections.namedtuple(
   'TrainParams',
@@ -121,8 +97,8 @@ TrainParams.__new__.__defaults__ = (None,) * len(TrainParams._fields)
 
 class Experiment(experiment.Experiment):
   def __init__(self, env_name, train_params, model_dict):
-    super().__init__(env_name, pg.ContinuousActionModel, model_dict,
-                     ImitationPolicy, {'lr': train_params.lr})
+    super().__init__(env_name, model.ContinuousActionModel, model_dict,
+                     policy.ImitationPolicy, {'lr': train_params.lr})
 
     self.tp = train_params
     if self.tp.steps_between_relabels:
@@ -151,7 +127,7 @@ class Experiment(experiment.Experiment):
         self.plt.add_data('ds_size', i, len(self.expert_ds))
 
       obs_batch, acs_batch = next(self.expert_ds)
-      metrics = self.policy.step(obs_batch, acs_batch)
+      metrics = self.policy.update(obs_batch, acs_batch)
       for name, values in metrics.items():
         self.plt.add_data(name, i, values)
 
