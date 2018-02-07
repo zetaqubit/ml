@@ -29,10 +29,9 @@ class Plotter(object):
       xs = [p.x for p in point_list]
       try:
         iter(point_list[0].y)  # Checks if the provided ys are iterable.
-        ys = [np.mean(p.y) for p in point_list]
-        ys_low = [np.percentile(p.y, 2.5) for p in point_list]
-        ys_high = [np.percentile(p.y, 97.5) for p in point_list]
-        plt.fill_between(xs, ys_low, ys_high, alpha=0.4, label=name + ' 95%')
+        ys = np.array([np.mean(p.y) for p in point_list])
+        std = np.array([np.std(p.y) for p in point_list])
+        plt.fill_between(xs, ys - std, ys + std, alpha=0.2, label=name + ' std')
       except TypeError:
         ys = [p.y for p in point_list]
       plt.plot(xs, ys, label=name + ' mean')
