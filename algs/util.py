@@ -29,6 +29,13 @@ def to_numpy(x):
   return x.cpu().numpy()
 
 
+def normalize(x, to_mean=0.0, to_std=1.0, eps=np.finfo(np.float32).eps):
+  """Normalizes array to have specified mean and std."""
+  from_mean, from_std = x.mean(), x.std()
+  x = (x - from_mean) / (from_std + eps)
+  return x * (to_std + eps) + to_mean
+
+
 def get_next_filename(dir_path, prefix='', extension=''):
   """Gets the next untaken file name in a directory.
 
