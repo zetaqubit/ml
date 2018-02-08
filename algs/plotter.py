@@ -1,17 +1,27 @@
 import collections
+import os
+
 from matplotlib import pyplot as plt
 import numpy as np
+import tensorboardX as tb
+
+from rl.algs import util
 
 Point = collections.namedtuple('Point', 'x y')
 
 class Plotter(object):
 
-  def __init__(self):
+  def __init__(self, log_dir=None):
     self.points = collections.defaultdict(list)
     self.figures = collections.defaultdict(plt.figure)
+    if log_dir:
+      log_dir = util.get_next_filename(log_dir)
+      os.makedirs(log_dir)
+    self.writer = SummaryWriter(log_dir)
 
   def add_data(self, key, x, y):
     self.points[key].append(Point(x, y))
+    self.writer.add_scalar(key, np.mean(y), x)
 
   def get_data(self, key, x):
     points_list = self.points[key]
@@ -65,3 +75,8 @@ class Plotter(object):
     idx = idx[np.argsort(ys[idx])][::-1]
     return zip(xs[idx], ys[idx])
 
+
+class SummaryWriter(tb.SummaryWriter):
+  def add_graph(self, model, input_to_model=None, verbose=False):
+    input_to_model = input_to_model or util.to_variable(np.zeros((1, 1)))
+    return super().add_graph(model, input_to_model, verbose)

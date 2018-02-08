@@ -1,15 +1,18 @@
 import copy
+import os
 
 import numpy as np
 
 from rl.algs import plotter
-from rl.algs.environment import Environment
 
+_BASE_LOG_DIR = '/tmp/tensorboard'
 
 class Experiment:
-  def __init__(self, env_name, model_cls, model_dict, policy_cls, policy_dict):
-    self.env = Environment(env_name=env_name)
-    self.plt = plotter.Plotter()
+  def __init__(self, env, model_cls, model_dict, policy_cls, policy_dict):
+    self.env = env
+    log_dir = os.path.join(_BASE_LOG_DIR, policy_cls.__name__,
+                           model_cls.__name__, env.env_name)
+    self.plt = plotter.Plotter(log_dir)
     self.snapshots = Snapshots()
 
     model_dict = dict(model_dict)
