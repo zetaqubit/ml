@@ -29,7 +29,7 @@ def to_numpy(x):
   return x.cpu().numpy()
 
 
-def normalize(x, to_mean=0.0, to_std=1.0, eps=np.finfo(np.float32).eps):
+def normalize(x, to_mean=0.0, to_std=1.0, eps=1e-8):
   """Normalizes array to have specified mean and std."""
   from_mean, from_std = x.mean(), x.std()
   x = (x - from_mean) / (from_std + eps)
