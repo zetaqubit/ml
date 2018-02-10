@@ -38,9 +38,10 @@ class DiscreteActionModel(th.nn.Module):
       Integer action to take. Size: [].
     """
     obs_var = util.to_variable(obs_np)
-    log_probs = self(obs_var.unsqueeze(0)).squeeze().data
+    log_probs = self(obs_var.unsqueeze(0)).squeeze()
     probs = th.exp(log_probs)
-    ac = th.multinomial(probs, 1)
+    dist = th.distributions.Categorical(probs)
+    ac = dist.sample()
     out_np = util.to_numpy(ac).squeeze()
     return out_np
 
@@ -126,3 +127,20 @@ class ContinuousActionModel(th.nn.Module):
       metrics['ac_std'] = util.to_numpy(dist.std)
     return log_probs
 
+
+class ValueNetwork(th.nn.Module):
+  def __init__(self, obs_dim, hidden_layers=(64,)):
+    super().__init__()
+
+    self.nn = _construct_nn((obs_dim,) + hidden_layers + (1,))
+    self._init_weights()
+    self.cuda()
+
+  def _init_weights(self):
+    for m in self.modules():
+      if isinstance(m, th.nn.Linear):
+        th.nn.init.xavier_normal(m.weight, gain=1e-2)
+        m.bias.data.zero_()
+
+  def forward(self, x):
+    return self.nn(x)
