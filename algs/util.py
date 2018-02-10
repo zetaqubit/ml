@@ -36,6 +36,13 @@ def normalize(x, to_mean=0.0, to_std=1.0, eps=1e-8):
   return x * (to_std + eps) + to_mean
 
 
+def print_weights(model):
+  for m in model.modules():
+    if isinstance(m, th.nn.Linear):
+      print(f'{m}: w: {m.weight.data}')
+      print(f'{m}: b: {m.bias.data}')
+
+
 def get_next_filename(dir_path, prefix='', extension=''):
   """Gets the next untaken file name in a directory.
 
