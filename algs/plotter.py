@@ -1,9 +1,11 @@
 import collections
 import os
+import tempfile
 
 from matplotlib import pyplot as plt
 import numpy as np
 import tensorboardX as tb
+import torch.onnx
 
 from rl.algs import util
 
@@ -78,5 +80,12 @@ class Plotter(object):
 
 class SummaryWriter(tb.SummaryWriter):
   def add_graph(self, model, input_to_model=None, verbose=False):
-    input_to_model = input_to_model or util.to_variable(np.zeros((1, 1)))
-    return super().add_graph(model, input_to_model, verbose)
+    if input_to_model is None:
+      input_to_model = util.to_variable(np.zeros((1, 1)))
+    # TODO: call add_graph after upgrading to PyTorch 0.4
+    #return super().add_graph(model, input_to_model, verbose)
+
+    _, model_file = tempfile.mkstemp()
+    torch.onnx.export(model, input_to_model, model_file, verbose=True)
+    print(f'Exported model to: {model_file}')
+    return super().add_graph_onnx(model_file)
