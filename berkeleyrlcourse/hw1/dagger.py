@@ -12,6 +12,7 @@ from torch.utils import data
 
 from rl.berkeleyrlcourse.hw1 import load_policy
 from rl.berkeleyrlcourse.hw1 import tf_util
+from rl.algs import environment
 from rl.algs import experiment
 from rl.algs import model
 from rl.algs import policy
@@ -97,7 +98,8 @@ TrainParams.__new__.__defaults__ = (None,) * len(TrainParams._fields)
 
 class Experiment(experiment.Experiment):
   def __init__(self, env_name, train_params, model_dict):
-    super().__init__(env_name, model.ContinuousActionModel, model_dict,
+    env = environment.Environment(env_name)
+    super().__init__(env, model.ContinuousActionModel, model_dict,
                      policy.ImitationPolicy, {'lr': train_params.lr})
 
     self.tp = train_params

@@ -86,6 +86,6 @@ class SummaryWriter(tb.SummaryWriter):
     #return super().add_graph(model, input_to_model, verbose)
 
     _, model_file = tempfile.mkstemp()
-    torch.onnx.export(model, input_to_model, model_file, verbose=True)
+    torch.onnx.export(model, input_to_model, model_file, verbose)
     print(f'Exported model to: {model_file}')
     return super().add_graph_onnx(model_file)
