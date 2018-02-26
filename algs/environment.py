@@ -72,7 +72,7 @@ class Environment(object):
             f'over {num_episodes} episodes.')
       return rs
     finally:
-      self.env.render(close=True)
+      self.env.close()
       self.reset()
 
 
