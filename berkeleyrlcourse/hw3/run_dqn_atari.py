@@ -7,9 +7,9 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
 
-import dqn
-from dqn_utils import *
-from atari_wrappers import *
+from rl.berkeleyrlcourse.hw3 import dqn
+from rl.berkeleyrlcourse.hw3.dqn_utils import *
+from rl.berkeleyrlcourse.hw3.atari_wrappers import *
 
 
 def atari_model(img_in, num_actions, scope, reuse=False):
@@ -38,7 +38,7 @@ def atari_learn(env,
                 session,
                 num_timesteps):
   # This is just a rough estimate
-  num_iterations = float(num_timesteps) / 4.0
+  num_iterations = float(num_timesteps) * 10
 
   lr_multiplier = 1.0
   lr_schedule = PiecewiseSchedule([
@@ -114,9 +114,7 @@ def get_session():
   return session
 
 
-def get_env(task, seed):
-  env_id = task.env_id
-
+def get_env(env_id, seed):
   env = gym.make(env_id)
 
   set_global_seeds(seed)
@@ -130,17 +128,12 @@ def get_env(task, seed):
 
 
 def main():
-  # Get Atari games.
-  benchmark = gym.benchmark_spec('Atari40M')
-
-  # Change the index to select a different game.
-  task = benchmark.tasks[3]
-
   # Run training
+  env_id = 'SpaceInvadersNoFrameskip-v4'
   seed = 0  # Use a seed of zero (you may want to randomize the seed!)
-  env = get_env(task, seed)
+  env = get_env(env_id, seed)
   session = get_session()
-  atari_learn(env, session, num_timesteps=task.max_timesteps)
+  atari_learn(env, session, num_timesteps=env.spec.max_episode_steps)
 
 
 if __name__ == "__main__":

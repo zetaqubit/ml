@@ -7,9 +7,9 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
 
-import dqn
-from dqn_utils import *
-from atari_wrappers import *
+from rl.berkeleyrlcourse.hw3 import dqn
+from rl.berkeleyrlcourse.hw3.dqn_utils import *
+from rl.berkeleyrlcourse.hw3.atari_wrappers import *
 
 
 def atari_model(ram_in, num_actions, scope, reuse=False):
