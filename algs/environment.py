@@ -46,7 +46,6 @@ class Environment(object):
     steps = 0
     while True:
       if env_need_reset:
-        ob = self.env.reset()
         if batch_size and steps >= batch_size:
           break
         if num_episodes and episode_i >= num_episodes:
@@ -54,6 +53,7 @@ class Environment(object):
         episode_i += 1
         episode = []
         episodes.append(episode)
+        ob = self.env.reset()
       if render:
         self.env.render()
       ac = policy(ob)
