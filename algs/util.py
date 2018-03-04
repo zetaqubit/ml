@@ -7,7 +7,7 @@ import torch as th
 from torch import autograd as tha
 
 
-def to_variable(x, dtype=th.FloatTensor):
+def to_variable(x, dtype=th.FloatTensor, **kwargs):
   """Converts numpy array or torch.Tensor to a Variable.
 
   Args:
@@ -19,7 +19,7 @@ def to_variable(x, dtype=th.FloatTensor):
     x = th.from_numpy(x)
   if dtype is not None:
     x = x.type(dtype)
-  return tha.Variable(x).cuda()
+  return tha.Variable(x, **kwargs).cuda()
 
 
 def to_numpy(x):
@@ -61,3 +61,25 @@ def get_next_filename(dir_path, prefix='', extension=''):
 
   numerals = sorted(numerals)
   return os.path.join(dir_path, prefix + str(numerals[-1] + 1) + extension)
+
+
+def sample_eps_greedy(probs, eps=0):
+  """Samples the distribution under epsilon-greedy."""
+  n = probs.shape[-1]
+
+  def sample(prob):
+    if np.random.rand() < eps:
+      return np.random.choice(n)
+    else:
+      return np.argmax(prob)
+
+  dims = len(probs.shape)
+  if dims == 1:
+    return sample(probs)
+  elif dims == 2:
+    num_rows = probs.shape[0]
+    selected = np.empty(num_rows)
+    for i in range(num_rows):
+      selected[i] = sample(probs[i, :])
+    return selected
+
