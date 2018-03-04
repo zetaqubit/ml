@@ -1,3 +1,4 @@
+import collections
 import functools
 import math
 
@@ -144,3 +145,28 @@ class ValueNetwork(th.nn.Module):
 
   def forward(self, x):
     return self.nn(x)
+
+
+ConvSpec = collections.namedtuple('ConvSpec', ['w', 's'])
+
+class QNetwork(th.nn.Module):
+  def __init__(self, obs_dim, acs_dim, conv_specs=None, hidden_layers=(64,)):
+    super().__init__()
+
+    self.convs = th.nn.Sequential(
+      th.nn.Conv2d(obs_dim[0], 32, 8, 4),
+      th.nn.ReLU(),
+      th.nn.Conv2d(32, 64, 4, 2),
+      th.nn.ReLU(),
+      th.nn.Conv2d(64, 64, 3, 1),
+      th.nn.ReLU(),
+    )
+    self.fc = _construct_nn((64*7*7, 512, acs_dim))
+    self.cuda()
+
+  def forward(self, x):
+    print(x.shape)
+    x = self.convs(x)
+    x = x.view(x.size(0), -1)
+    x = self.fc(x)
+    return x
