@@ -150,7 +150,10 @@ class ValueNetwork(th.nn.Module):
 ConvSpec = collections.namedtuple('ConvSpec', ['w', 's'])
 
 class QNetwork(th.nn.Module):
-  def __init__(self, obs_dim, acs_dim, conv_specs=None, hidden_layers=(64,)):
+  """Q-network with convs and fc, with one action-value output per action.
+
+  """
+  def __init__(self, obs_dim, acs_dim):
     super().__init__()
 
     self.convs = th.nn.Sequential(
@@ -165,7 +168,6 @@ class QNetwork(th.nn.Module):
     self.cuda()
 
   def forward(self, x):
-    print(x.shape)
     x = self.convs(x)
     x = x.view(x.size(0), -1)
     x = self.fc(x)

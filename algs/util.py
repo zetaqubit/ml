@@ -1,6 +1,7 @@
 import glob
 import os
 import re
+from typing import List
 
 import numpy as np
 import torch as th
@@ -83,3 +84,14 @@ def sample_eps_greedy(probs, eps=0):
       selected[i] = sample(probs[i, :])
     return selected
 
+
+class Schedule:
+  """Piecewise linear function."""
+  def __init__(self, xs: List[int], ys: List[int]):
+    if not np.all(np.diff(xs) >= 0):
+      raise ValueError('x coordinates must be sorted in ascending order.')
+    self.xs = xs
+    self.ys = ys
+
+  def get(self, x):
+    return np.interp(x, self.xs, self.ys)

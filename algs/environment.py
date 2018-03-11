@@ -92,10 +92,12 @@ class AtariEnvironment:
     self.acs_dim = (self.env.action_space.n if self.discrete_ac
                     else self.env.action_space.shape[0])
 
+    self.last_frame = None
     self.last_obs = self.reset()
 
   def reset(self):
     obs = np.empty(self.obs_dim)
+    self.last_frame = None
     obs[0, :, :] = self._preprocess(self.env.reset())
     # TODO: verify assumption that action 0 is No-op.
     obs[1:, :, :], r, done = self.step_k(0, self.action_repeat - 1)
@@ -104,11 +106,19 @@ class AtariEnvironment:
 
   def _preprocess(self, ob):
     """Converts 210x160x3 RGB to 84x84x1 Y."""
-    y = color.rgb2yuv(ob)[:, :, 0]
+    # Take the max over prev and current frames.
+    if self.last_frame is not None:
+      ob_comb = np.maximum(ob, self.last_frame)
+    else:
+      ob_comb = ob
+    self.last_frame = ob
+
+    # Convert to YUV, extract Y, and resize.
+    y = color.rgb2yuv(ob_comb)[:, :, 0]
     y_resized = transform.resize(y, (84, 84))
     return y_resized
 
-  def step_k(self, ac, k):
+  def step_k(self, ac, k, render=False):
     obs = np.zeros((k,) + self.obs_dim[1:])
     r_sum = 0
     done = False
@@ -116,15 +126,16 @@ class AtariEnvironment:
       rgb, r, done, _ = self.env.step(ac)
       obs[i, :, :] = self._preprocess(rgb)
       r_sum += r  # TODO: might need to discount
+      if render:
+        self.env.render()
       if done:
         break
     return obs, r_sum, done
 
-  def step(self, policy):
+  def step(self, policy, render=False):
     assert self.last_obs is not None
-    print(self.last_obs.shape)
     ac = policy(np.expand_dims(self.last_obs, 0)).squeeze().astype(int)
-    obs, r, done = self.step_k(ac, self.action_repeat)
+    obs, r, done = self.step_k(ac, self.action_repeat, render)
     if not done:
       sars = SARS(self.last_obs, ac, r, obs)
       self.last_obs = obs
@@ -132,3 +143,12 @@ class AtariEnvironment:
       sars = SARS(self.last_obs, ac, r, None)
       self.last_obs = self.reset()
     return sars
+
+  def visualize(self, policy, steps=600):
+    try:
+      for i in range(steps):
+        self.step(policy.get_action, render=True)
+    finally:
+      self.env.close()
+      self.reset()
+
