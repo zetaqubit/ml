@@ -2,10 +2,9 @@
 """
 import collections
 
+import cv2
 import gym
 import numpy as np
-from skimage import color
-from skimage import transform
 
 
 SAR = collections.namedtuple('SAR', 's a r')
@@ -113,10 +112,12 @@ class AtariEnvironment:
       ob_comb = ob
     self.last_frame = ob
 
-    # Convert to YUV, extract Y, and resize.
-    y = color.rgb2yuv(ob_comb)[:, :, 0]
-    y_resized = transform.resize(y, (84, 84))
-    return y_resized
+    # Convert to YUV, extract Y, resize, and crop.
+    r, g, b = ob_comb[:, :, 0], ob_comb[:, :, 1], ob_comb[:, :, 2]
+    y = 0.299 * r + 0.587 * g + 0.114 * b
+    y_resized = cv2.resize(y, (84, 110), interpolation=cv2.INTER_LINEAR)
+    y_cropped = y_resized[13:-13, :]
+    return y_cropped
 
   def step_k(self, ac, k, render=False):
     obs = np.zeros((k,) + self.obs_dim[1:])
