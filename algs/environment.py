@@ -1,10 +1,13 @@
 """Wrapper around gym.Environment that supports sampling rollouts of a policy.
 """
 import collections
+import time
 
 import cv2
 import gym
 import numpy as np
+
+from rl.algs import atari_wrappers
 
 
 SAR = collections.namedtuple('SAR', 's a r')
@@ -79,6 +82,48 @@ class Environment(object):
 
 
 class AtariEnvironment:
+  def __init__(self, env_name):
+    self.env_name = env_name + 'NoFrameskip-v4'
+    env = atari_wrappers.make_atari(self.env_name)
+    self.env = atari_wrappers.wrap_deepmind(env,
+                                            episode_life=True,
+                                            clip_rewards=True,
+                                            frame_stack=True,
+                                            scale=False)
+
+    # Observation and action sizes
+    self.discrete_ac = True
+    self.obs_dim = self.env.observation_space.shape
+    print(self.obs_dim)
+    self.acs_dim = self.env.action_space.n
+
+    print(f'{self.obs_dim} {self.acs_dim}')
+
+    self.last_obs = self.env.reset()
+
+  def step(self, policy, render=False, sleep_ms=0):
+    ac = policy(np.expand_dims(self.last_obs, 0)).squeeze().astype(int)
+    obs, r, done, info = self.env.step(ac)
+    if render:
+      self.env.render()
+      time.sleep(sleep_ms)
+    if not done:
+      sars = SARS(self.last_obs, ac, r, obs)
+      self.last_obs = obs
+    else:
+      sars = SARS(self.last_obs, ac, r, None)
+      self.last_obs = self.env.reset()
+    return sars
+
+  def visualize(self, policy, steps=600, sleep_ms=0):
+    try:
+      for i in range(steps):
+        self.step(policy.get_action, render=True, sleep_ms=sleep_ms)
+    finally:
+      self.env.close()
+      self.env.reset()
+
+class AtariEnvironmentMine:
   def __init__(self, env_name, action_repeat=4):
     self.env_name = env_name + 'NoFrameskip-v4'
     self.action_repeat = action_repeat

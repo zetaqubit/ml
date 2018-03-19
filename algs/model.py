@@ -154,10 +154,16 @@ class QNetwork(th.nn.Module):
 
   """
   def __init__(self, obs_dim, acs_dim):
+    """Creates a Q-network.
+
+    Args:
+      obs_dim: shape of the observation tensor. Assumed to be HWC.
+      acs_dim: number of discrete actions.
+    """
     super().__init__()
 
     self.convs = th.nn.Sequential(
-      th.nn.Conv2d(obs_dim[0], 32, 8, 4),
+      th.nn.Conv2d(obs_dim[-1], 32, 8, 4),
       th.nn.ReLU(),
       th.nn.Conv2d(32, 64, 4, 2),
       th.nn.ReLU(),
@@ -168,6 +174,15 @@ class QNetwork(th.nn.Module):
     self.cuda()
 
   def forward(self, x):
+    """Runs the model on input observations.
+
+    Args:
+      x: 4-D image tensor. Assumed to be BHWC.
+
+    Returns:
+      Softmax probabilities, shaped [B, acs_dim]
+    """
+    x = x.permute(0, 3, 1, 2)  # Convert to BCHW.
     x = self.convs(x)
     x = x.view(x.size(0), -1)
     x = self.fc(x)
