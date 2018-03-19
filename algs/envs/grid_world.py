@@ -5,10 +5,10 @@ import numpy as np
 
 # (0, 0) is top-left. Array is row-major, so (r, c).
 _ACTIONS = [
-  (-1, 0),  # up
-  (0, 1),  # right
-  (1, 0),  # down
-  (0, -1),  # left
+  (-1, 0, 0),  # up
+  (0, 1, 0),  # right
+  (1, 0, 0),  # down
+  (0, -1, 0),  # left
 ]
 
 _NUM_ACTIONS = len(_ACTIONS)
@@ -16,6 +16,7 @@ _NUM_ACTIONS = len(_ACTIONS)
 _EMPTY = 0
 _CURRENT = 1
 _END = 2
+_LAST = _END  # Sentinel.
 
 
 class GridWorld(gym.core.Env):
@@ -24,6 +25,8 @@ class GridWorld(gym.core.Env):
     self._min_pos = np.zeros_like(grid_shape)
     self._max_pos = np.array(grid_shape) - 1
     self.action_space = gym.spaces.Discrete(_NUM_ACTIONS)
+    self.observation_space = gym.spaces.Box(low=_EMPTY, high=_LAST,
+                                            shape=grid_shape, dtype=np.uint8)
     self.seed()
 
   def seed(self, seed=None):
@@ -36,6 +39,7 @@ class GridWorld(gym.core.Env):
     self.current_pos, self.end_pos = self._sample_locations(n=2)
     self._state[self.current_pos] = _CURRENT
     self._state[self.end_pos] = _END
+    return self._state.copy()
 
   def _sample_locations(self, n=1):
     """Samples n locations, without replacement."""
@@ -55,7 +59,8 @@ class GridWorld(gym.core.Env):
     new_pos = np.array(self.current_pos) + _ACTIONS[action]
     self.current_pos = self._clip_pos(new_pos)
     self._state[self.current_pos] = _CURRENT
-    return self._state.copy(), -1, self._is_done(), None
+    r = 0 if self._is_done() else -1
+    return self._state.copy(), r, self._is_done(), None
 
   def _is_done(self):
     return self.current_pos == self.end_pos
@@ -65,3 +70,5 @@ class GridWorld(gym.core.Env):
 
   def render(self, mode='human'):
     pprint(self._state.squeeze())
+
+

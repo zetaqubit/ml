@@ -8,6 +8,7 @@ import gym
 import numpy as np
 
 from rl.algs import atari_wrappers
+from rl.algs.envs import grid_world
 
 
 SAR = collections.namedtuple('SAR', 's a r')
@@ -80,6 +81,39 @@ class Environment(object):
       self.env.close()
       self.reset()
 
+
+class GridWorldWrapped:
+  def __init__(self, grid_shape=(4, 4, 1)):
+    self.env_name = 'GridWorld-v0'
+    self.env = grid_world.GridWorld(grid_shape=grid_shape)
+
+    # Observation and action sizes
+    self.discrete_ac = True
+    self.obs_dim = self.env.observation_space.shape
+    self.acs_dim = self.env.action_space.n
+
+    self.last_obs = self.env.reset()
+
+  def step(self, policy, render=False):
+    ac = policy(np.expand_dims(self.last_obs, 0)).squeeze().astype(int)
+    obs, r, done, info = self.env.step(ac)
+    if render:
+      self.env.render()
+    if not done:
+      sars = SARS(self.last_obs, ac, r, obs)
+      self.last_obs = obs
+    else:
+      sars = SARS(self.last_obs, ac, r, None)
+      self.last_obs = self.env.reset()
+    return sars
+
+  def visualize(self, policy, steps=20):
+    try:
+      for i in range(steps):
+        self.step(policy.get_action, render=True)
+    finally:
+      self.env.close()
+      self.env.reset()
 
 class AtariEnvironment:
   def __init__(self, env_name):
