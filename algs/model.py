@@ -1,13 +1,15 @@
 import collections
+import copy
 import functools
 import math
 
+import numpy as np
 import torch as th
 
 from rl.algs import util
 
 
-def _construct_nn(dims, fn=th.nn.ReLU, last_fn=None):
+def _fc_nn(dims, fn=th.nn.ReLU, last_fn=None):
   layers = []
   for i in range(1, len(dims)):
     layers.append(th.nn.Linear(dims[i - 1], dims[i]))
@@ -17,11 +19,33 @@ def _construct_nn(dims, fn=th.nn.ReLU, last_fn=None):
   return th.nn.Sequential(*layers)
 
 
+def _conv_nn(conv_specs, in_shape, fn=th.nn.ReLU, last_fn=None):
+  out_shape = list(in_shape)
+
+  def calc_width(in_w, kernel_w, stride):
+    return math.floor((in_w - kernel_w) / stride + 1)
+
+  layers = []
+  last_depth = in_shape[-1]
+  for i, conv_spec in enumerate(conv_specs):
+    layers.append(th.nn.Conv2d(last_depth, conv_spec.depth, conv_spec.width,
+                               conv_spec.stride))
+    activation_fn = fn if i < len(conv_specs) - 1 else last_fn
+    if activation_fn:
+      layers.append(activation_fn())
+
+    last_depth = conv_spec.depth
+    out_shape[-1] = last_depth  # Channels
+    out_shape[-2] = calc_width(out_shape[-2], conv_spec.width, conv_spec.stride)
+    out_shape[-3] = calc_width(out_shape[-3], conv_spec.width, conv_spec.stride)
+  return th.nn.Sequential(*layers), tuple(out_shape)
+
+
 class DiscreteActionModel(th.nn.Module):
   def __init__(self, obs_dim, acs_dim, hidden_layers=(64,)):
     super().__init__()
 
-    self.nn = _construct_nn(
+    self.nn = _fc_nn(
       (obs_dim,) + hidden_layers + (acs_dim,),
       last_fn=functools.partial(th.nn.LogSoftmax, dim=1))
     self.cuda()
@@ -71,11 +95,11 @@ class ContinuousActionModel(th.nn.Module):
     super().__init__()
 
     base_nn_dims = (obs_dim,) + shared_layers
-    self.base_nn = _construct_nn(base_nn_dims, last_fn=th.nn.ReLU)
+    self.base_nn = _fc_nn(base_nn_dims, last_fn=th.nn.ReLU)
     mean_std_dims = (shared_layers[-1],) + action_layers + (acs_dim,)
-    self.means = _construct_nn(mean_std_dims)
+    self.means = _fc_nn(mean_std_dims)
     if model_std:
-      self.logstds = _construct_nn(mean_std_dims)
+      self.logstds = _fc_nn(mean_std_dims)
     else:
       # Must assign th.nn.Parameter to self to be included in parameters().
       self._logstds = th.nn.Parameter(th.zeros(1, acs_dim).cuda())
@@ -133,7 +157,7 @@ class ValueNetwork(th.nn.Module):
   def __init__(self, obs_dim, hidden_layers=(64,)):
     super().__init__()
 
-    self.nn = _construct_nn((obs_dim,) + hidden_layers + (1,))
+    self.nn = _fc_nn((obs_dim,) + hidden_layers + (1,))
     self._init_weights()
     self.cuda()
 
@@ -147,30 +171,39 @@ class ValueNetwork(th.nn.Module):
     return self.nn(x)
 
 
-ConvSpec = collections.namedtuple('ConvSpec', ['w', 's'])
+ConvSpec = collections.namedtuple('ConvSpec', ['width', 'stride', 'depth'])
+
+# Network used in the Atari DQN paper.
+DQN_CONV_SPECS = [
+  ConvSpec(8, 4, 32),
+  ConvSpec(4, 2, 64),
+  ConvSpec(3, 1, 64),
+]
+
+DQN_FC_SPECS = (512,)
 
 class QNetwork(th.nn.Module):
   """Q-network with convs and fc, with one action-value output per action.
 
   """
-  def __init__(self, obs_dim, acs_dim):
+  def __init__(self, obs_dim, acs_dim, conv_specs, fc_specs):
     """Creates a Q-network.
 
     Args:
       obs_dim: shape of the observation tensor. Assumed to be HWC.
       acs_dim: number of discrete actions.
+      conv_specs: list of convolution layer specs.
+      fc_specs: list of fully-connected layer specs. These follow the convs.
     """
     super().__init__()
 
-    self.convs = th.nn.Sequential(
-      th.nn.Conv2d(obs_dim[-1], 32, 8, 4),
-      th.nn.ReLU(),
-      th.nn.Conv2d(32, 64, 4, 2),
-      th.nn.ReLU(),
-      th.nn.Conv2d(64, 64, 3, 1),
-      th.nn.ReLU(),
-    )
-    self.fc = _construct_nn((64*7*7, 512, acs_dim))
+    self.convs, conv_out_shape = _conv_nn(conv_specs, obs_dim, fn=th.nn.ReLU,
+                                          last_fn=th.nn.ReLU)
+    print(conv_out_shape)
+    assert (np.array(conv_out_shape) > 0).all()
+    fc_in_size = int(np.product(conv_out_shape))
+    fc_sizes = (fc_in_size,) + fc_specs + (acs_dim,)
+    self.fc = _fc_nn(fc_sizes)
     self.cuda()
 
   def forward(self, x):
