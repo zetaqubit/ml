@@ -220,3 +220,12 @@ class QNetwork(th.nn.Module):
     x = x.view(x.size(0), -1)
     x = self.fc(x)
     return x
+
+  def action_values(self, obs_np):
+    obs_var = util.to_variable(obs_np)
+    return util.to_numpy(self(obs_var))
+
+  def get_action(self, obs_np):
+    qs = self.action_values(obs_np)
+    return np.argmax(qs, -1)
+

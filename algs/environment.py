@@ -105,15 +105,41 @@ class GridWorldWrapped:
     else:
       sars = SARS(self.last_obs, ac, r, None)
       self.last_obs = self.env.reset()
+      if render:
+        self.env.render()
     return sars
 
   def visualize(self, policy, steps=20):
     try:
+      self.env.render()
       for i in range(steps):
         self.step(policy.get_action, render=True)
     finally:
       self.env.close()
       self.env.reset()
+
+  def show_model_policy(self, model):
+    grid = np.full_like(self.env.state(), grid_world._EMPTY)
+    assert grid.squeeze().ndim == 2
+    for end_pos in np.ndindex(grid.shape):
+      moves = np.empty_like(grid, dtype=str)
+      values = np.zeros_like(grid, dtype=float)
+      moves[end_pos] = '⟲'
+      for start_pos in np.ndindex(grid.shape):
+        if start_pos == end_pos:
+          continue
+        g = grid.copy()
+        g[start_pos] = grid_world._CURRENT
+        g[end_pos] = grid_world._END
+        g = np.expand_dims(g, 0)
+        ac = model.get_action(g).squeeze().astype(int)
+        arrows = ['↑', '→', '↓', '←']
+        moves[start_pos] = arrows[ac]
+        vs = model.action_values(g).squeeze()
+        values[start_pos] = vs[ac]
+      print(values.squeeze())
+      print(moves.squeeze())
+
 
 class AtariEnvironment:
   def __init__(self, env_name):

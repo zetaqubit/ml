@@ -27,7 +27,11 @@ class GridWorld(gym.core.Env):
     self.action_space = gym.spaces.Discrete(_NUM_ACTIONS)
     self.observation_space = gym.spaces.Box(low=_EMPTY, high=_LAST,
                                             shape=grid_shape, dtype=np.uint8)
+    self.current_pos, self.end_pos = None, None
     self.seed()
+
+  def state(self):
+    return self._state.copy()
 
   def seed(self, seed=None):
     self._random_state = np.random.RandomState(seed)
@@ -39,7 +43,7 @@ class GridWorld(gym.core.Env):
     self.current_pos, self.end_pos = self._sample_locations(n=2)
     self._state[self.current_pos] = _CURRENT
     self._state[self.end_pos] = _END
-    return self._state.copy()
+    return self.state()
 
   def _sample_locations(self, n=1):
     """Samples n locations, without replacement."""
@@ -51,24 +55,31 @@ class GridWorld(gym.core.Env):
 
   def step(self, action):
     assert 0 <= action < _NUM_ACTIONS
-    if self._is_done():
+    if self.done():
       print('Already in terminating state.')
-      return self._state.copy(), 0, True, None
+      return self.state(), 0, True, None
 
-    self._state[self.current_pos] = _EMPTY
     new_pos = np.array(self.current_pos) + _ACTIONS[action]
+    self._state[self.current_pos] = _EMPTY
     self.current_pos = self._clip_pos(new_pos)
     self._state[self.current_pos] = _CURRENT
-    r = 0 if self._is_done() else -1
-    return self._state.copy(), r, self._is_done(), None
-
-  def _is_done(self):
-    return self.current_pos == self.end_pos
+    r = 0 if self.done() else -1
+    return self.state(), r, self.done(), None
 
   def _clip_pos(self, pos):
     return tuple(np.clip(pos, self._min_pos, self._max_pos))
 
+  def done(self):
+    return self.current_pos == self.end_pos
+
   def render(self, mode='human'):
     pprint(self._state.squeeze())
 
-
+  def optimal_expected_reward(self):
+    dist = []
+    for e in np.ndindex(self._grid_shape):
+      for s in np.ndindex(self._grid_shape):
+        if s == e:
+          continue
+        dist.append(np.sum(np.abs(np.array(s) - np.array(e))))
+    return np.mean(dist) - 1  # 0 reward for last step.
