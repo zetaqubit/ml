@@ -12,6 +12,16 @@ from rl.algs import util
 Sars = environment.SARS
 
 
+# TODO: support filter for None.
+def sars_filter(s=None, a=None, r=None, s1=None):
+  def filter(sars):
+    return ((s is None or (s == sars.s).all()) and
+            (a is None or a == sars.a) and
+            (r is None or r == sars.r) and
+            (s1 is None or (s1 == sars.s1).all()))
+  return filter
+
+
 class ReplayBuffer:
   def __init__(self, size=10000):
     self.max_size = size
@@ -34,6 +44,14 @@ class ReplayBuffer:
 
   def all_entries(self):
     return self.buf[:self.size]
+
+  def filter_by(self, fn):
+    """Runs fn on every entry and returns the ones where fn returned True."""
+    matched = []
+    for entry in self.all_entries():
+      if fn(entry):
+        matched.append(entry)
+    return matched
 
 
 class Dqn:
