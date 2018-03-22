@@ -78,8 +78,8 @@ class Dqn:
     #print(a_batch.squeeze())
     #print(r_batch.squeeze())
 
-    terminal_mask = util.to_variable(
-      np.stack([1 if sars.s1 is None else 0 for sars in sars_batch]))
+    non_terminal_mask = util.to_variable(
+      np.stack([1 if sars.s1 is not None else 0 for sars in sars_batch]))
 
     a_var = util.to_variable(a_batch, dtype=th.LongTensor).unsqueeze(dim=1)
 
@@ -89,7 +89,7 @@ class Dqn:
     s1_var = util.to_variable(s1_batch, volatile=True)
     target_qs = self.target_model(s1_var)
     target_qs_max, qs_max_idx = th.max(target_qs, dim=-1)
-    target = self.gamma * terminal_mask * target_qs_max
+    target = self.gamma * non_terminal_mask * target_qs_max
     target += r_batch
 
     loss = thf.mse_loss(qs_sel, target)
