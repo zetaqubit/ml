@@ -55,10 +55,11 @@ class ReplayBuffer:
 
 
 class Dqn:
-  def __init__(self, model, lr, eps_sched, target_update_freq=10000):
+  def __init__(self, model, opt_params, eps_sched, target_update_freq=10000):
     self.model = model
     self.target_model = copy.deepcopy(self.model)
-    self.optimizer = th.optim.Adam(self.model.parameters(), lr)
+    self.optimizer = opt_params['fn'](self.model.parameters(),
+                                      **opt_params['kwargs'])
     self.eps_sched = eps_sched
     self.target_update_freq = target_update_freq
     self.gamma = 0.99
