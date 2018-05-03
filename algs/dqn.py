@@ -103,20 +103,21 @@ class Dqn:
     a_var = util.to_variable(a_batch, dtype=th.LongTensor).unsqueeze(dim=1)
 
     qs = self.action_values(s_batch)
-    qs_sel = th.gather(qs, dim=-1, index=a_var)
+    qs_sel = th.gather(qs, dim=-1, index=a_var).squeeze()
 
-    s1_var = util.to_variable(s1_batch, volatile=True)
-    target_qs = self.target_model(s1_var)
-    target_qs_max, qs_max_idx = th.max(target_qs, dim=-1)
-    target = self.gamma * non_terminal_mask * target_qs_max
-    target += r_batch
+    with th.no_grad():
+      s1_var = util.to_variable(s1_batch)
+      target_qs = self.target_model(s1_var)
+      target_qs_max, qs_max_idx = th.max(target_qs, dim=-1)
+      target = self.gamma * non_terminal_mask * target_qs_max
+      target += r_batch
 
     loss = thf.mse_loss(qs_sel, target)
     self.optimizer.zero_grad()
     loss.backward()
     self.optimizer.step()
 
-    metrics['loss'] = util.to_numpy(loss)[0]
+    metrics['loss'] = util.to_numpy(loss)
     metrics['epsilon'] = self.eps_sched.get(self.step)
     return metrics
 
