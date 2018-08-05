@@ -120,13 +120,13 @@ class FrameworkBase(b2ContactListener):
         self.destructionListener = None
         self.renderer = None
 
-    def __init__(self):
+    def __init__(self, gravity=(0, -10)):
         super(FrameworkBase, self).__init__()
 
         self.__reset()
 
         # Box2D Initialization
-        self.world = b2World(gravity=(0, -10), doSleep=True)
+        self.world = b2World(gravity=gravity, doSleep=True)
 
         self.destructionListener = fwDestructionListener(test=self)
         self.world.destructionListener = self.destructionListener

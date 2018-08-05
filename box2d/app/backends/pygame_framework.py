@@ -232,8 +232,8 @@ class PygameFramework(FrameworkBase):
         self.gui_table = None
         self.setup_keys()
 
-    def __init__(self):
-        super(PygameFramework, self).__init__()
+    def __init__(self, gravity=(0, -10), screen_size=(1920, 1080)):
+        super(PygameFramework, self).__init__(gravity=gravity)
 
         self.__reset()
         if fwSettings.onlyInit:  # testing mode doesn't initialize pygame
@@ -246,22 +246,28 @@ class PygameFramework(FrameworkBase):
         pygame.display.set_caption(caption)
 
         # Screen and debug draw
-        self.screen = pygame.display.set_mode((640, 480))
+        self.screen = pygame.display.set_mode(screen_size)
         self.screenSize = b2Vec2(*self.screen.get_size())
 
         self.renderer = PygameDraw(surface=self.screen, test=self)
         self.world.renderer = self.renderer
 
         try:
-            self.font = pygame.font.Font(None, 15)
+            self.font = pygame.font.Font("DejaVuSansMono.ttf", 16)
         except IOError:
-            try:
-                self.font = pygame.font.Font("freesansbold.ttf", 15)
-            except IOError:
-                print("Unable to load default font or 'freesansbold.ttf'")
-                print("Disabling text drawing.")
-                self.Print = lambda *args: 0
-                self.DrawStringAt = lambda *args: 0
+            pass  # fallback to next
+        try:
+            self.font = pygame.font.Font(None, 16)
+        except IOError:
+            pass  # fallback to next
+        try:
+            self.font = pygame.font.Font("freesansbold.ttf", 16)
+        except IOError:
+            print("Unable to load default font, 'DejaVuSansMono.ttf', "
+                  "or 'freesansbold.ttf'")
+            print("Disabling text drawing.")
+            self.Print = lambda *args: 0
+            self.DrawStringAt = lambda *args: 0
 
         # GUI Initialization
         if GUIEnabled:
