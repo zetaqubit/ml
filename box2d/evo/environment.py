@@ -23,7 +23,7 @@ class Environment(framework.Framework):
     # wall_box = b2.polygonShape(box=(50, 10))
     # wall_body.CreateFixture(shape=wall_box)
 
-    # wall_body = self.world.CreateStaticBody(
+    # wall_body = self.world.CreateBody(
     #     position=(0, -10),
     #     shapes=[b2.polygonShape(box=(50, 10)),
     #             b2.polygonShape(box=(10, 50))],
