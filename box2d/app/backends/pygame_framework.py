@@ -407,6 +407,9 @@ class PygameFramework(FrameworkBase):
                 self.settings.singleStep = True
                 if GUIEnabled:
                     self.gui_table.updateGUI(self.settings)
+            elif key == Keys.K_F3:    # Open debugger
+              import IPython
+              IPython.embed()
             else:              # Inform the test of the key press
                 self.Keyboard(key)
         else:
