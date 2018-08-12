@@ -17,7 +17,7 @@ class Environment(framework.Framework):
     Initialize all of your objects here.
     Be sure to call the Framework's initializer first.
     """
-    super().__init__(gravity=(0, 0))
+    super().__init__(gravity=(0, 0), screen_size=(800, 800))
 
     # wall_body = self.world.CreateBody(position=(0, -10))
     # wall_box = b2.polygonShape(box=(50, 10))
