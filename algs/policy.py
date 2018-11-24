@@ -23,7 +23,7 @@ class ImitationPolicy:
     log_probs = self.model.log_probs(obs_var, acs_var, metrics)
     loss = -log_probs.mean()
 
-    metrics['loss'] = util.to_numpy(loss)[0]
+    metrics['loss'] = util.to_numpy(loss).item()
 
     self.optimizer.zero_grad()
     loss.backward()
@@ -110,9 +110,9 @@ class PolicyGradient(object):
     policy_loss = -j
     loss = policy_loss + value_loss
 
-    metrics['loss/total'] = util.to_numpy(loss)[0]
-    metrics['loss/policy'] = util.to_numpy(policy_loss)[0]
-    metrics['loss/value'] = util.to_numpy(value_loss)[0]
+    metrics['loss/total'] = util.to_numpy(loss).item()
+    metrics['loss/policy'] = util.to_numpy(policy_loss).item()
+    metrics['loss/value'] = util.to_numpy(value_loss).item()
 
     # Compute gradients.
     self.optimizer.zero_grad()

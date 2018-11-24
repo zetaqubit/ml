@@ -157,7 +157,7 @@ class ContinuousActionModel(th.nn.Module):
     log_probs = log_probs.squeeze()  # [batch, 1] -> [batch].
     if metrics is not None:
       metrics['ac_mean'] = util.to_numpy(dist.mean)
-      metrics['ac_std'] = util.to_numpy(dist.std)
+      metrics['ac_std'] = util.to_numpy(dist.stddev)
     return log_probs
 
 
