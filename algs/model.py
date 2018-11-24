@@ -124,12 +124,20 @@ class ContinuousActionModel(th.nn.Module):
       Action to take. Size: [acs_dim].
     """
     obs_var = util.to_variable(obs_np)
-    dist = self._get_action_distribution(obs_var)
-    ac = dist.sample()
+    dist = self._get_action_distribution(obs_var.unsqueeze(0))
+    ac = dist.sample().squeeze(0)
     out_np = util.to_numpy(ac)
     return out_np
 
   def _get_action_distribution(self, obs_var):
+    """Computes the action distribution given observations.
+
+    Args:
+      obs_var: Tensor of observations. Size: [batch, obs_dim].
+
+    Returns:
+      Distribution over actions. Sampled size: [batch, acs_dim].
+    """
     means, logstds = self(obs_var)
     stds = th.exp(logstds)
     dist = th.distributions.Normal(means, stds)
