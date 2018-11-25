@@ -100,7 +100,7 @@ class Dqn:
     non_terminal_mask = util.to_variable(
       np.stack([1 if sars.s1 is not None else 0 for sars in sars_batch]))
 
-    a_var = util.to_variable(a_batch, dtype=th.LongTensor).unsqueeze(dim=1)
+    a_var = util.to_variable(a_batch, dtype=th.long).unsqueeze(dim=1)
 
     qs = self.action_values(s_batch)
     qs_sel = th.gather(qs, dim=-1, index=a_var).squeeze()
@@ -117,7 +117,7 @@ class Dqn:
     loss.backward()
     self.optimizer.step()
 
-    metrics['loss'] = util.to_numpy(loss)
+    metrics['loss'] = loss.item()
     metrics['epsilon'] = self.eps_sched.get(self.step)
     return metrics
 

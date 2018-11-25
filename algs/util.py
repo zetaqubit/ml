@@ -5,29 +5,20 @@ from typing import List
 
 import numpy as np
 import torch as th
-from torch import autograd as tha
 
 
-def to_variable(x, dtype=th.FloatTensor, **kwargs):
-  """Converts numpy array or torch.Tensor to a Variable.
+def to_variable(x, dtype=th.float, **kwargs):
+  """Converts array-like to a torch.Tensor on the GPU.
 
   Args:
-    x: np.ndarray, or torch.Tensor
-    dtype: variable datatype. Will also be converted to cuda.
-      If none, will be inferred from the nd_array.
+    x: array-like.
+    dtype: variable datatype. If none, will be inferred from the nd_array.
   """
-  if isinstance(x, np.ndarray):
-    x = th.from_numpy(x)
-  if dtype is not None:
-    x = x.type(dtype)
-  return tha.Variable(x, **kwargs).cuda()
-
+  return th.tensor(x, dtype=dtype, **kwargs).cuda()
 
 def to_numpy(x):
-  """Converts torch.Tensor or tha.Variable to nmupy array."""
-  if isinstance(x, tha.Variable):
-    x = x.data
-  return x.cpu().numpy()
+  """Converts (possibly GPU) torch.Tensor to numpy array."""
+  return x.detach().cpu().numpy()
 
 
 def normalize(x, to_mean=0.0, to_std=1.0, eps=1e-8):
