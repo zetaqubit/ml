@@ -13,10 +13,10 @@ import pickle
 import tensorflow as tf
 import numpy as np
 import tf_util
-import gym
 import load_policy
 
-from rl.algs import util
+from rl.core.algs import util
+
 
 def main():
   import argparse

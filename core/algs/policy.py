@@ -4,7 +4,7 @@ import numpy as np
 import torch as th
 from torch.nn import functional as thf
 
-from rl.algs import util
+from rl.core.algs import util
 
 
 class ImitationPolicy:

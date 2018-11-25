@@ -5,8 +5,8 @@ import numpy as np
 import torch as th
 import torch.nn.functional as thf
 
-from rl.envs import environment
-from rl.algs import util
+from rl.core.envs import environment
+from rl.core.algs import util
 
 Sars = environment.SARS
 

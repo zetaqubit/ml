@@ -12,10 +12,8 @@ from torch.utils import data
 
 from rl.berkeleyrlcourse.hw1 import load_policy
 from rl.berkeleyrlcourse.hw1 import tf_util
-from rl.envs import environment
-from rl.algs import experiment
-from rl.algs import model
-from rl.algs import policy
+from rl.core.envs import environment
+from rl.core.algs import experiment, policy, model
 
 
 class ExpertDataset:

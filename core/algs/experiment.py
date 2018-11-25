@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from rl.algs import plotter
+from rl.core.algs import plotter
 
 _BASE_LOG_DIR = '/tmp/tensorboard'
 

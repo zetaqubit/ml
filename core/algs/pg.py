@@ -4,11 +4,8 @@ import collections
 
 import numpy as np
 
-from rl.envs import environment
-from rl.algs import experiment
-from rl.algs import model
-from rl.algs import policy
-from rl.algs import util
+from rl.core.envs import environment
+from rl.core.algs import util, experiment, policy, model
 
 TrainParams = collections.namedtuple(
   'TrainParams',

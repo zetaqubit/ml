@@ -1,12 +1,11 @@
 import collections
-import copy
 import functools
 import math
 
 import numpy as np
 import torch as th
 
-from rl.algs import util
+from rl.core.algs import util
 
 
 def _fc_nn(dims, fn=th.nn.ReLU, last_fn=None):

@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import numpy as np
 import tensorboardX as tb
 
-from rl.algs import util
+from rl.core.algs import util
 
 Point = collections.namedtuple('Point', 'x y')
 

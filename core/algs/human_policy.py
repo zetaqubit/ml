@@ -1,6 +1,5 @@
 import argparse
 import sys
-import time
 
 import gym
 import pygame
@@ -12,13 +11,10 @@ try:
 except Exception:
   pass
 
-import pyglet.window as pw
-
 from collections import deque
 from pygame import locals  # HWSURFACE, DOUBLEBUF, RESIZABLE, VIDEORESIZE
-import threading
 
-from rl.algs import keyboard_layout
+from rl.core.algs import keyboard_layout
 
 
 def display_arr(screen, arr, video_size, transpose):
