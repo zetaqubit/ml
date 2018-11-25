@@ -4,7 +4,7 @@ import collections
 
 import numpy as np
 
-from rl.algs import environment
+from rl.envs import environment
 from rl.algs import experiment
 from rl.algs import model
 from rl.algs import policy

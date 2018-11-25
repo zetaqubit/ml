@@ -7,9 +7,8 @@ import cv2
 import gym
 import numpy as np
 
-from rl.algs import atari_wrappers
-from rl.algs.envs import grid_world
-
+from rl.envs import atari_wrappers
+from rl.envs import grid_world
 
 SAR = collections.namedtuple('SAR', 's a r')
 SARS = collections.namedtuple('SARS', 's a r s1')

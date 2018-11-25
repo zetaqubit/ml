@@ -1,12 +1,11 @@
 import copy
-from pprint import pprint
 from typing import List
 
 import numpy as np
 import torch as th
 import torch.nn.functional as thf
 
-from rl.algs import environment
+from rl.envs import environment
 from rl.algs import util
 
 Sars = environment.SARS
