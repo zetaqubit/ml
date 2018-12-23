@@ -24,8 +24,17 @@ class ImageWorldEnvTest(unittest.TestCase):
       ]],
     ])
 
+    self._labels = np.array([1, 3])
+    self._num_classes = 3
+
+  def _create_env(self, window_size):
+    return image_world.ImageWorldEnv(
+        window_size=window_size, images=self._images, labels=self._labels,
+        num_classes=self._num_classes)
+
+
   def test_step_in_bounds(self):
-    env = image_world.ImageWorldEnv(self._images, window_size=2)
+    env = self._create_env(window_size=2)
     env.seed(0)
 
     expected = self._images[0, :, 0:2, 0:2]
@@ -41,7 +50,7 @@ class ImageWorldEnvTest(unittest.TestCase):
     np.testing.assert_array_equal(expected, env.step(action=(0.75, 0.99)))
 
   def test_step_padded(self):
-    env = image_world.ImageWorldEnv(self._images, window_size=3)
+    env = self._create_env(window_size=3)
     env.seed(0)
 
     expected = np.array([[
@@ -85,7 +94,7 @@ class ImageWorldEnvTest(unittest.TestCase):
     np.testing.assert_array_equal(expected, env.step(action=(0.99, 0.99)))
 
   def test_reset(self):
-    env = image_world.ImageWorldEnv(self._images, window_size=2)
+    env = self._create_env(window_size=2)
     env.seed(0)
     expected = self._images[0, :, 0:2, 0:2]
     np.testing.assert_array_equal(expected, env.step(action=(0.25, 0.34)))
@@ -107,7 +116,7 @@ class ImageWorldEnvTest(unittest.TestCase):
     num_resets = 20
     image_indices = np.empty((num_trials, num_resets))
     for t in range(num_trials):
-      env = image_world.ImageWorldEnv(self._images, window_size=2)
+      env = self._create_env(window_size=2)
       env.seed(1337)
       for n in range(num_resets):
         image_indices[t, n] = env.current_image_index
@@ -116,7 +125,7 @@ class ImageWorldEnvTest(unittest.TestCase):
       np.testing.assert_array_equal(image_indices[0], image_indices[t])
 
   def test_seed_returned_allows_reproducibility(self):
-    env = image_world.ImageWorldEnv(self._images, window_size=2)
+    env = self._create_env(window_size=2)
     num_trials = 10
     num_resets = 20
     image_indices = np.empty((num_trials, num_resets))
@@ -137,7 +146,7 @@ class ImageWorldEnvTest(unittest.TestCase):
     num_resets = 20
     image_indices = np.empty((num_trials, num_resets))
     for t in range(num_trials):
-      env = image_world.ImageWorldEnv(self._images, window_size=2)
+      env = self._create_env(window_size=2)
       for n in range(num_resets):
         image_indices[t, n] = env.current_image_index
         env.reset()

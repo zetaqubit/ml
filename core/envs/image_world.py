@@ -16,8 +16,9 @@ task [1].
 """
 
 import gym
+import gym.utils.seeding
+import gym.spaces
 import numpy as np
-from gym.utils import seeding
 
 
 class ImageWorldEnv(gym.core.Env):
@@ -43,21 +44,73 @@ class ImageWorldEnv(gym.core.Env):
        concludes the episode, and the environment needs to be reset.
   """
 
-  def __init__(self, images, window_size):
+  def __init__(self, window_size, images, labels, num_classes):
     """Creates an ImageWorldEnv.
 
-    :param images: set of images. numpy array shaped [n, c, h, w].
     :param window_size: size of the square window, in pixels.
+    :param images: set of images. numpy array shaped [n, c, h, w].
     """
-    assert images.ndim == 4
     assert window_size > 0
+    assert images.ndim == 4
+    assert len(images) == len(labels)
 
-    self._images = images
-    self._n, self._c, self._h, self._w = images.shape
     self._win_sz = window_size
+    self._images = images
+    self._labels = labels
+    self._num_classes = num_classes
+    self._n, self._c, self._h, self._w = images.shape
     self._rand = None
     self._current_image_index = None
     self.seed()
+
+    # Gym-specific attributes
+    self._action_space = gym.spaces.Dict({
+      # Position window at (x, y, z).
+      'window': gym.spaces.Box(low=0, high=1, shape=(3,), dtype=np.float),
+
+      # Whether to make a prediction.
+      'should_predict': gym.spaces.Discrete(2),
+
+      # Predicted category label
+      'prediction': gym.spaces.Discrete(num_classes),
+    })
+
+    self._observation_space = gym.spaces.Box(
+        low=0, high=1, shape=(self._c, self._win_sz, self._win_sz),
+        dtype=np.float)
+
+  @property
+  def action_space(self):
+    """Returns the action space.
+
+    Action space:
+      'window': [x, y, z] position to place the window. [0, 1]x[0, 1]x[0, 1]
+      'should_predict': whether to make a prediction now and terminate the
+         episode. {0, 1}
+      'prediction': prediction of the class label. Only used if should_predict.
+         {0, 1, ..., num_classes - 1}
+    """
+    return self._action_space
+
+  @property
+  def observation_space(self):
+    """Returns the observation space.
+
+    TODO: document
+    TODO: always include downscaled 'minimap' view.
+    """
+    return self._observation_space
+
+  @property
+  def reward_range(self):
+    """Returns the reward range.
+
+    Rewards:
+      - on each step: -1; episode continues.
+      - is_predicting and correct: 0; episode terminates.
+      - is_predicting and incorrect: -10; episode terminates.
+    """
+    return -10, 0
 
   def step(self, action):
     """Moves the view window to (x, y) and returns the image patch there.
@@ -114,7 +167,7 @@ class ImageWorldEnv(gym.core.Env):
       to seed a future Env guarantees full reproducibility.
     """
     if seed is None:
-      seed = seeding.create_seed(max_bytes=4)
+      seed = gym.utils.seeding.create_seed(max_bytes=4)
     self._rand = np.random.RandomState(seed)
     self.reset()
     return [seed]
@@ -122,7 +175,6 @@ class ImageWorldEnv(gym.core.Env):
   @property
   def current_image_index(self):
     return self._current_image_index
-
 
 
 def tile_image(tiles, tile_yxs, height, width):
