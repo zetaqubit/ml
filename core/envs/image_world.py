@@ -17,6 +17,7 @@ task [1].
 
 import gym
 import numpy as np
+from gym.utils import seeding
 
 
 class ImageWorldEnv(gym.core.Env):
@@ -42,12 +43,11 @@ class ImageWorldEnv(gym.core.Env):
        concludes the episode, and the environment needs to be reset.
   """
 
-  def __init__(self, images, window_size, seed=0):
+  def __init__(self, images, window_size):
     """Creates an ImageWorldEnv.
 
     :param images: set of images. numpy array shaped [n, c, h, w].
     :param window_size: size of the square window, in pixels.
-    :param seed: random seed controlling the sampling of images from the set.
     """
     assert images.ndim == 4
     assert window_size > 0
@@ -55,9 +55,9 @@ class ImageWorldEnv(gym.core.Env):
     self._images = images
     self._n, self._c, self._h, self._w = images.shape
     self._win_sz = window_size
-    self._rand = np.random.RandomState(seed)
-    self._current_image = None
-    self.reset()
+    self._rand = None
+    self._current_image_index = None
+    self.seed()
 
   def step(self, action):
     """Moves the view window to (x, y) and returns the image patch there.
@@ -77,7 +77,7 @@ class ImageWorldEnv(gym.core.Env):
     x, y = action
     assert 0 <= x <= 1 and 0 <= y <= 1
 
-    image = self._images[self._current_image]
+    image = self._images[self._current_image_index]
 
     center_x, center_y = int(x * self._w), int(y * self._h)
 
@@ -103,7 +103,26 @@ class ImageWorldEnv(gym.core.Env):
     return l, r, t, b
 
   def reset(self):
-    self._current_image = self._rand.randint(self._n)
+    self._current_image_index = self._rand.randint(self._n)
+
+  def seed(self, seed=None):
+    """Sets the seed for this env's random number generator(s).
+
+    :param seed: seed to use for all RGN in this environment. Default of
+      None selects a random seed.
+    :return: the random seed supplied (if any) or selected. Using this value
+      to seed a future Env guarantees full reproducibility.
+    """
+    if seed is None:
+      seed = seeding.create_seed(max_bytes=4)
+    self._rand = np.random.RandomState(seed)
+    self.reset()
+    return [seed]
+
+  @property
+  def current_image_index(self):
+    return self._current_image_index
+
 
 
 def tile_image(tiles, tile_yxs, height, width):

@@ -25,7 +25,8 @@ class ImageWorldEnvTest(unittest.TestCase):
     ])
 
   def test_step_in_bounds(self):
-    env = image_world.ImageWorldEnv(self._images, window_size=2, seed=0)
+    env = image_world.ImageWorldEnv(self._images, window_size=2)
+    env.seed(0)
 
     expected = self._images[0, :, 0:2, 0:2]
     np.testing.assert_array_equal(expected, env.step(action=(0.25, 0.34)))
@@ -40,7 +41,8 @@ class ImageWorldEnvTest(unittest.TestCase):
     np.testing.assert_array_equal(expected, env.step(action=(0.75, 0.99)))
 
   def test_step_padded(self):
-    env = image_world.ImageWorldEnv(self._images, window_size=3, seed=0)
+    env = image_world.ImageWorldEnv(self._images, window_size=3)
+    env.seed(0)
 
     expected = np.array([[
       [0, 0, 0],
@@ -83,7 +85,8 @@ class ImageWorldEnvTest(unittest.TestCase):
     np.testing.assert_array_equal(expected, env.step(action=(0.99, 0.99)))
 
   def test_reset(self):
-    env = image_world.ImageWorldEnv(self._images, window_size=2, seed=0)
+    env = image_world.ImageWorldEnv(self._images, window_size=2)
+    env.seed(0)
     expected = self._images[0, :, 0:2, 0:2]
     np.testing.assert_array_equal(expected, env.step(action=(0.25, 0.34)))
 
@@ -98,6 +101,51 @@ class ImageWorldEnvTest(unittest.TestCase):
     env.reset()
     expected = self._images[0, :, 0:2, 0:2]
     np.testing.assert_array_equal(expected, env.step(action=(0.25, 0.34)))
+
+  def test_seed_specified_new_env(self):
+    num_trials = 10
+    num_resets = 20
+    image_indices = np.empty((num_trials, num_resets))
+    for t in range(num_trials):
+      env = image_world.ImageWorldEnv(self._images, window_size=2)
+      env.seed(1337)
+      for n in range(num_resets):
+        image_indices[t, n] = env.current_image_index
+        env.reset()
+    for t in range(1, num_trials):
+      np.testing.assert_array_equal(image_indices[0], image_indices[t])
+
+  def test_seed_returned_allows_reproducibility(self):
+    env = image_world.ImageWorldEnv(self._images, window_size=2)
+    num_trials = 10
+    num_resets = 20
+    image_indices = np.empty((num_trials, num_resets))
+    for t in range(num_trials):
+      if t == 0:
+        chosen_seed = env.seed()[0]
+      else:
+        env.seed(chosen_seed)
+      for n in range(num_resets):
+        image_indices[t, n] = env.current_image_index
+        env.reset()
+
+    for t in range(num_trials):
+      np.testing.assert_array_equal(image_indices[0], image_indices[t])
+
+  def test_random_seed(self):
+    num_trials = 10
+    num_resets = 20
+    image_indices = np.empty((num_trials, num_resets))
+    for t in range(num_trials):
+      env = image_world.ImageWorldEnv(self._images, window_size=2)
+      for n in range(num_resets):
+        image_indices[t, n] = env.current_image_index
+        env.reset()
+
+    unique_rows, counts = np.unique(image_indices, axis=0, return_counts=True)
+    np.testing.assert_array_equal(
+        np.ones(num_trials), counts,
+        f'trials: \n{image_indices}\nunique:\n{unique_rows}')
 
 
 class TileImageTest(unittest.TestCase):
