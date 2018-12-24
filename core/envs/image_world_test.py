@@ -104,9 +104,33 @@ class ImageWorldEnvTest(unittest.TestCase):
     np.testing.assert_array_equal(expected, env._glimpse(0.75, 0.67))
     np.testing.assert_array_equal(expected, env._glimpse(0.99, 0.99))
 
-  # TODO: add tests for env.step().
-  def test_step(self):
-    pass
+  def test_step_glimpse(self):
+    env = self._create_env(window_size=2)
+    env.seed(0)
+
+    action = self._create_action(should_predict=0, window=(0.25, 0.34))
+    expected = (self._images[0, :, 0:2, 0:2], -1, False, {})
+    self.assert_step_output_equal(expected, env.step(action))
+
+    action = self._create_action(should_predict=0, window=(0.50, 0.67))
+    expected = (self._images[0, :, 1:3, 1:3], -1, False, {})
+    self.assert_step_output_equal(expected, env.step(action))
+
+  def test_step_predict_correct(self):
+    env = self._create_env(window_size=2)
+    env.seed(0)
+
+    action = self._create_action(should_predict=1, pred=1)
+    expected = (None, 0, True, {})
+    self.assert_step_output_equal(expected, env.step(action))
+
+  def test_step_predict_incorrect(self):
+    env = self._create_env(window_size=2)
+    env.seed(0)
+
+    action = self._create_action(should_predict=1, pred=2)
+    expected = (None, -10, True, {})
+    self.assert_step_output_equal(expected, env.step(action))
 
   def test_reset(self):
     env = self._create_env(window_size=2)
