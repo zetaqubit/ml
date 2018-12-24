@@ -61,7 +61,7 @@ class DiscreteActionModel(th.nn.Module):
     Returns:
       Integer action to take. Size: [].
     """
-    obs_var = util.to_variable(obs_np)
+    obs_var = util.to_tensor(obs_np)
     log_probs = self(obs_var.unsqueeze(0)).squeeze()
     probs = th.exp(log_probs)
     dist = th.distributions.Categorical(probs)
@@ -122,7 +122,7 @@ class ContinuousActionModel(th.nn.Module):
     Returns:
       Action to take. Size: [acs_dim].
     """
-    obs_var = util.to_variable(obs_np)
+    obs_var = util.to_tensor(obs_np)
     dist = self._get_action_distribution(obs_var.unsqueeze(0))
     ac = dist.sample().squeeze(0)
     out_np = util.to_numpy(ac)
@@ -229,7 +229,7 @@ class QNetwork(th.nn.Module):
     return x
 
   def action_values(self, obs_np):
-    obs_var = util.to_variable(obs_np)
+    obs_var = util.to_tensor(obs_np)
     return util.to_numpy(self(obs_var))
 
   def get_action(self, obs_np):

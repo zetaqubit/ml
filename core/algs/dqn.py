@@ -65,7 +65,7 @@ class Dqn:
     self.step = 0
 
   def action_values(self, obs_np):
-    obs_var = util.to_variable(obs_np)
+    obs_var = util.to_tensor(obs_np)
     return self.model(obs_var)
 
   def get_action(self, obs_np):
@@ -88,7 +88,7 @@ class Dqn:
     empty = np.zeros_like(sars_batch[0].s)
     s_batch = np.stack([sars.s for sars in sars_batch])
     a_batch = np.stack([sars.a for sars in sars_batch])
-    r_batch = util.to_variable(np.stack([sars.r for sars in sars_batch]))
+    r_batch = util.to_tensor(np.stack([sars.r for sars in sars_batch]))
     s1_batch = np.stack([sars.s1 if sars.s1 is not None else empty
                          for sars in sars_batch])
 
@@ -96,16 +96,16 @@ class Dqn:
     #print(a_batch.squeeze())
     #print(r_batch.squeeze())
 
-    non_terminal_mask = util.to_variable(
+    non_terminal_mask = util.to_tensor(
       np.stack([1 if sars.s1 is not None else 0 for sars in sars_batch]))
 
-    a_var = util.to_variable(a_batch, dtype=th.long).unsqueeze(dim=1)
+    a_var = util.to_tensor(a_batch, dtype=th.long).unsqueeze(dim=1)
 
     qs = self.action_values(s_batch)
     qs_sel = th.gather(qs, dim=-1, index=a_var).squeeze()
 
     with th.no_grad():
-      s1_var = util.to_variable(s1_batch)
+      s1_var = util.to_tensor(s1_batch)
       target_qs = self.target_model(s1_var)
       target_qs_max, qs_max_idx = th.max(target_qs, dim=-1)
       target = self.gamma * non_terminal_mask * target_qs_max

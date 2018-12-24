@@ -79,6 +79,6 @@ class Plotter(object):
 class SummaryWriter(tb.SummaryWriter):
   def add_graph(self, model, input_to_model=None, **kwargs):
     if input_to_model is None:
-      input_to_model = util.to_variable(np.zeros((1, 1)))
+      input_to_model = util.to_tensor(np.zeros((1, 1)))
     return super().add_graph(model, input_to_model, **kwargs)
 

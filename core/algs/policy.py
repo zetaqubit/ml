@@ -18,8 +18,8 @@ class ImitationPolicy:
 
   def update(self, obs_batch, acs_batch):
     metrics = {}
-    obs_var = util.to_variable(obs_batch)
-    acs_var = util.to_variable(acs_batch)
+    obs_var = util.to_tensor(obs_batch)
+    acs_var = util.to_tensor(acs_batch)
     log_probs = self.model.log_probs(obs_var, acs_var, metrics)
     loss = -log_probs.mean()
 
@@ -62,13 +62,13 @@ class PolicyGradient(object):
         qs[t - 1] += self.discount * qs[t]
       qs_batch.append(qs)
     qs_batch = np.concatenate(qs_batch)
-    return util.to_variable(qs_batch)
+    return util.to_tensor(qs_batch)
 
   def _compute_advantages(self, obs, qs, metrics=None):
     """Computes the advantage."""
     qs_normed = util.normalize(qs)
     if not self.value_nn:
-      return qs_normed, util.to_variable(np.array([0]))
+      return qs_normed, util.to_tensor(np.array([0]))
 
     vs = self.value_nn(obs).squeeze()
     qs_mean, qs_std = th.mean(qs), th.std(qs)
@@ -92,8 +92,8 @@ class PolicyGradient(object):
 
     acs_batch = np.array([sar.a for eps in eps_batch for sar in eps])
     obs_batch = np.array([sar.s for eps in eps_batch for sar in eps])
-    acs_var = util.to_variable(acs_batch, dtype=None)
-    obs_var = util.to_variable(obs_batch)
+    acs_var = util.to_tensor(acs_batch, dtype=None)
+    obs_var = util.to_tensor(obs_batch)
 
     # Compute normalized discounted rewards.
     qs = self._compute_qs(eps_batch, metrics)

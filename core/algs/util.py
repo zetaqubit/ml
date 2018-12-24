@@ -7,7 +7,7 @@ import numpy as np
 import torch as th
 
 
-def to_variable(x, dtype=th.float, **kwargs):
+def to_tensor(x, dtype=th.float, **kwargs):
   """Converts array-like to a torch.Tensor on the GPU.
 
   Args:

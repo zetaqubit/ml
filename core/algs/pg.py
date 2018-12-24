@@ -36,10 +36,10 @@ class Experiment(experiment.Experiment):
                      policy_kwargs)
 
     self.plt.writer.add_graph(self.policy.model,
-                              util.to_variable(np.zeros((1, env.obs_dim))))
+                              util.to_tensor(np.zeros((1, env.obs_dim))))
     if value_nn_params is not None:
       self.plt.writer.add_graph(value_nn,
-                                util.to_variable(np.zeros((1, env.obs_dim))))
+                                util.to_tensor(np.zeros((1, env.obs_dim))))
 
   def train(self):
     for i in range(self.tp.num_train_iters):
