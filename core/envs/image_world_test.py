@@ -22,7 +22,7 @@ class ImageWorldEnvTest(unittest.TestCase):
         [61, 62, 63, 64],
         [71, 72, 73, 74],
       ]],
-    ])
+    ], dtype=np.float)
 
     self._labels = np.array([1, 3])
     self._num_classes = 3
@@ -206,6 +206,41 @@ class ImageWorldEnvTest(unittest.TestCase):
     np.testing.assert_array_equal(
         np.ones(num_trials), counts,
         f'trials: \n{image_indices}\nunique:\n{unique_rows}')
+
+  def test_minimap(self):
+    images = np.array([
+      [[
+        [0, 0, 1, 1],
+        [0, 0, 1, 1],
+        [2, 2, 3, 3],
+        [2, 2, 3, 3],
+      ]],
+      [[
+        [0, 1, 0, 1],
+        [0, 0, 3, 0],
+        [1, 2, 9, 5],
+        [3, 4, 5, 1],
+      ]],
+    ], dtype=np.float)
+    env = image_world.ImageWorldEnv(
+        window_size=2, images=images, labels=self._labels,
+        num_classes=self._num_classes)
+    env.seed(0)
+
+    expected = np.array([
+      [[
+        [0, 1],
+        [2, 3],
+      ]],
+      [[
+        [0.25, 1],
+        [2.5, 5],
+      ]]
+    ], dtype=np.float)
+    np.testing.assert_array_equal(expected[0], env.minimap)
+
+    env.reset()
+    np.testing.assert_array_equal(expected[1], env.minimap)
 
 
 class TileImageTest(unittest.TestCase):

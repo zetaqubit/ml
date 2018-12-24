@@ -68,6 +68,8 @@ class ImageWorldEnv(gym.core.Env):
     self._current_image_index = None
     self.seed()
 
+    self._images_mini = self._create_minimaps()
+
     # Gym-specific attributes
     self._action_space = gym.spaces.Dict({
       # Position window at (x, y, z).
@@ -199,6 +201,37 @@ class ImageWorldEnv(gym.core.Env):
   @property
   def current_image_index(self):
     return self._current_image_index
+
+  @property
+  def minimap(self):
+    return self._images_mini[self._current_image_index]
+
+  def _create_minimaps(self):
+    minimap = np.empty((self._n, self._c, self._win_sz, self._win_sz))
+    for i in range(self._n):
+      minimap[i] = resize(self._images[i], self._win_sz, self._win_sz)
+    return minimap
+
+
+def resize(image, width, height):
+  """Resizes image to specified size.
+
+  :param image (np.array): input image, shaped [c, h, w].
+  :param width: desired output width, in pixels
+  :param height: desired output height, in pixels
+  :return: (np.array) resized image, shaped [c, height, width].
+  """
+  import cv2
+
+  orig_ndim = image.ndim
+
+  # Convert CHW <-> WHC for OpenCV
+  image = image.transpose(2, 1, 0)
+  image = cv2.resize(image, (height, width))
+  if orig_ndim != image.ndim:
+    image = np.expand_dims(image, -1)  # Add channel back.
+  image = image.transpose(2, 1, 0)
+  return image
 
 
 def tile_image(tiles, tile_yxs, height, width):
