@@ -44,6 +44,11 @@ class ImageWorldEnv(gym.core.Env):
        concludes the episode, and the environment needs to be reset.
   """
 
+  # Rewards
+  REWARD_CORRECT = 0
+  REWARD_INCORRECT = -10
+  REWARD_GLIMPSE = -1
+
   def __init__(self, window_size, images, labels, num_classes):
     """Creates an ImageWorldEnv.
 
@@ -110,24 +115,43 @@ class ImageWorldEnv(gym.core.Env):
       - is_predicting and correct: 0; episode terminates.
       - is_predicting and incorrect: -10; episode terminates.
     """
-    return -10, 0
+    return self.REWARD_INCORRECT, self.REWARD_CORRECT
 
   def step(self, action):
     """Moves the view window to (x, y) and returns the image patch there.
 
-    :param action: (x, y) coordinates of the window, in range [0, 1)x[0, 1)
+    :param action: the action to take, in format described by `action_space`.
     :return:
-      observation:
-        image patch visible through the window. Shape [c, win_sz, win_sz]
-      TODO: define following
+      observation (np.array): image patch visible through the window.
+        Shape [c, win_sz, win_sz]. If done, this is None.
       reward (float): amount of reward returned after previous action
-      done (boolean): whether the episode has ended, in which case further
-        step() calls will return undefined results
-      info (dict): contains auxiliary diagnostic information (helpful for
-        debugging, and sometimes learning)
-
+      done (boolean): whether the episode has ended, in which case `reset()`
+        should be called.
+      info (dict): contains auxiliary diagnostic information
     """
-    x, y = action
+    window = action['window']
+    should_predict = action['should_predict']
+    prediction = action['prediction']
+
+    if should_predict:
+      assert 0 <= prediction < self._num_classes
+      correct = prediction == self._labels[self._current_image_index]
+      reward = self.REWARD_CORRECT if correct else self.REWARD_INCORRECT
+      obs = None
+      return obs, reward, True, {}
+
+    assert len(window) == 2  # TODO: support zoom
+    x, y = window
+    obs = self._glimpse(x, y)
+    return obs, self.REWARD_GLIMPSE, False, {}
+
+  def _glimpse(self, x, y):
+    """Moves the view window to (x, y) and returns the image patch there.
+
+    :param x: x-coordinates of the window, in range [0, 1).
+    :param y: y-coordinates of the window, in range [0, 1).
+    :return: image patch visible through the window. Shape [c, win_sz, win_sz].
+    """
     assert 0 <= x <= 1 and 0 <= y <= 1
 
     image = self._images[self._current_image_index]

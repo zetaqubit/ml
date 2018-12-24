@@ -32,24 +32,35 @@ class ImageWorldEnvTest(unittest.TestCase):
         window_size=window_size, images=self._images, labels=self._labels,
         num_classes=self._num_classes)
 
+  def _create_action(self, should_predict=None, window=None, pred=None):
+    return {
+      'should_predict': should_predict,
+      'window': window,
+      'prediction': pred
+    }
 
-  def test_step_in_bounds(self):
+  def assert_step_output_equal(self, expected, actual):
+    self.assertEqual(len(expected), len(actual))
+    np.testing.assert_array_equal(expected[0], actual[0])
+    self.assertEqual(expected[1:], actual[1:])
+
+  def test_glimpse_in_bounds(self):
     env = self._create_env(window_size=2)
     env.seed(0)
 
     expected = self._images[0, :, 0:2, 0:2]
-    np.testing.assert_array_equal(expected, env.step(action=(0.25, 0.34)))
-    np.testing.assert_array_equal(expected, env.step(action=(0.49, 0.66)))
+    np.testing.assert_array_equal(expected, env._glimpse(0.25, 0.34))
+    np.testing.assert_array_equal(expected, env._glimpse(0.49, 0.66))
 
     expected = self._images[0, :, 1:3, 1:3]
-    np.testing.assert_array_equal(expected, env.step(action=(0.50, 0.67)))
-    np.testing.assert_array_equal(expected, env.step(action=(0.74, 0.99)))
+    np.testing.assert_array_equal(expected, env._glimpse(0.50, 0.67))
+    np.testing.assert_array_equal(expected, env._glimpse(0.74, 0.99))
 
     expected = self._images[0, :, 1:3, 2:4]
-    np.testing.assert_array_equal(expected, env.step(action=(0.75, 0.67)))
-    np.testing.assert_array_equal(expected, env.step(action=(0.75, 0.99)))
+    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0.67))
+    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0.99))
 
-  def test_step_padded(self):
+  def test_glimpse_padded(self):
     env = self._create_env(window_size=3)
     env.seed(0)
 
@@ -58,58 +69,74 @@ class ImageWorldEnvTest(unittest.TestCase):
       [0, 11, 12],
       [0, 21, 22],
     ]])
-    np.testing.assert_array_equal(expected, env.step(action=(0, 0)))
-    np.testing.assert_array_equal(expected, env.step(action=(0.24, 0.33)))
+    np.testing.assert_array_equal(expected, env._glimpse(0, 0))
+    np.testing.assert_array_equal(expected, env._glimpse(0.24, 0.33))
 
     expected = np.array([[
       [0, 0, 0],
       [11, 12, 13],
       [21, 22, 23],
     ]])
-    np.testing.assert_array_equal(expected, env.step(action=(0.25, 0)))
-    np.testing.assert_array_equal(expected, env.step(action=(0.49, 0.33)))
+    np.testing.assert_array_equal(expected, env._glimpse(0.25, 0))
+    np.testing.assert_array_equal(expected, env._glimpse(0.49, 0.33))
 
     expected = np.array([[
       [0, 0, 0],
       [13, 14, 0],
       [23, 24, 0],
     ]])
-    np.testing.assert_array_equal(expected, env.step(action=(0.75, 0)))
-    np.testing.assert_array_equal(expected, env.step(action=(0.99, 0.33)))
+    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0))
+    np.testing.assert_array_equal(expected, env._glimpse(0.99, 0.33))
 
     expected = np.array([[
       [13, 14, 0],
       [23, 24, 0],
       [33, 34, 0],
     ]])
-    np.testing.assert_array_equal(expected, env.step(action=(0.75, 0.34)))
-    np.testing.assert_array_equal(expected, env.step(action=(0.99, 0.66)))
+    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0.34))
+    np.testing.assert_array_equal(expected, env._glimpse(0.99, 0.66))
 
     expected = np.array([[
       [23, 24, 0],
       [33, 34, 0],
       [0, 0, 0],
     ]])
-    np.testing.assert_array_equal(expected, env.step(action=(0.75, 0.67)))
-    np.testing.assert_array_equal(expected, env.step(action=(0.99, 0.99)))
+    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0.67))
+    np.testing.assert_array_equal(expected, env._glimpse(0.99, 0.99))
+
+  # TODO: add tests for env.step().
+  def test_step(self):
+    pass
 
   def test_reset(self):
     env = self._create_env(window_size=2)
     env.seed(0)
-    expected = self._images[0, :, 0:2, 0:2]
-    np.testing.assert_array_equal(expected, env.step(action=(0.25, 0.34)))
+
+    action_glimpse = self._create_action(should_predict=0, window=(0.25, 0.34))
+    action_predict = self._create_action(should_predict=1, pred=1)
+
+    expected = (self._images[0, :, 0:2, 0:2], -1, False, {})
+    self.assert_step_output_equal(expected, env.step(action_glimpse))
+    expected = (None, 0, True, {})
+    self.assert_step_output_equal(expected, env.step(action_predict))
 
     env.reset()
-    expected = self._images[1, :, 0:2, 0:2]
-    np.testing.assert_array_equal(expected, env.step(action=(0.25, 0.34)))
+    expected = (self._images[1, :, 0:2, 0:2], -1, False, {})
+    self.assert_step_output_equal(expected, env.step(action_glimpse))
+    expected = (None, -10, True, {})
+    self.assert_step_output_equal(expected, env.step(action_predict))
 
     env.reset()
-    expected = self._images[1, :, 0:2, 0:2]
-    np.testing.assert_array_equal(expected, env.step(action=(0.25, 0.34)))
+    expected = (self._images[1, :, 0:2, 0:2], -1, False, {})
+    self.assert_step_output_equal(expected, env.step(action_glimpse))
+    expected = (None, -10, True, {})
+    self.assert_step_output_equal(expected, env.step(action_predict))
 
     env.reset()
-    expected = self._images[0, :, 0:2, 0:2]
-    np.testing.assert_array_equal(expected, env.step(action=(0.25, 0.34)))
+    expected = (self._images[0, :, 0:2, 0:2], -1, False, {})
+    self.assert_step_output_equal(expected, env.step(action_glimpse))
+    expected = (None, 0, True, {})
+    self.assert_step_output_equal(expected, env.step(action_predict))
 
   def test_seed_specified_new_env(self):
     num_trials = 10
