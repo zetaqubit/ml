@@ -7,7 +7,7 @@ import numpy as np
 from rl.core.envs import image_world
 
 
-class ImageWorldEnvTest(unittest.TestCase):
+class ImageWorldTest(unittest.TestCase):
 
   def setUp(self):
     # Shape [n, c, h, w] -> [2, 1, 3, 4]
@@ -28,7 +28,7 @@ class ImageWorldEnvTest(unittest.TestCase):
     self._num_classes = 3
 
   def _create_env(self, window_size):
-    return image_world.ImageWorldEnv(
+    return image_world.ImageWorld(
         window_size=window_size, images=self._images, labels=self._labels,
         num_classes=self._num_classes)
 
@@ -222,7 +222,7 @@ class ImageWorldEnvTest(unittest.TestCase):
         [3, 4, 5, 1],
       ]],
     ], dtype=np.float)
-    env = image_world.ImageWorldEnv(
+    env = image_world.ImageWorld(
         window_size=2, images=images, labels=self._labels,
         num_classes=self._num_classes)
     env.seed(0)

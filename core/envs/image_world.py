@@ -21,7 +21,7 @@ import gym.spaces
 import numpy as np
 
 
-class ImageWorldEnv(gym.core.Env):
+class ImageWorld(gym.core.Env):
   """An Image World environment.
 
   The environment holds a set of images. On each reset, an image is randomly
@@ -50,7 +50,7 @@ class ImageWorldEnv(gym.core.Env):
   REWARD_GLIMPSE = -1
 
   def __init__(self, window_size, images, labels, num_classes):
-    """Creates an ImageWorldEnv.
+    """Creates an ImageWorld.
 
     :param window_size: size of the square window, in pixels.
     :param images: set of images. numpy array shaped [n, c, h, w].
