@@ -63,7 +63,7 @@ class SyntheticDataset(th.utils.data.TensorDataset):
     max_x = self._width - tile_w
     max_y = self._height - tile_h
     tile_xys = [(self._rand.randint(max_x), self._rand.randint(max_y))
-                 for _ in range(self._tiles_per_image)]
+                for _ in range(self._tiles_per_image)]
 
     image = tile_image(select_images, tile_xys, self._width, self._height)
     label = label_fn(select_labels)
@@ -90,7 +90,7 @@ def MnistSyntheticDataset(mnist_dir='~/code/data/mnist', train=True, **kwargs):
   return SyntheticDataset(tile_images=images, tile_labels=labels, **kwargs)
 
 
-def tile_image(tiles, tile_xys, width, height):
+def tile_image(tiles, tile_xys, width, height, merge_mode='max'):
   """Creates an image by blitting tiles at specified locations.
 
   :param tiles: list of np.arrays shaped [c, h, w]
@@ -99,11 +99,25 @@ def tile_image(tiles, tile_xys, width, height):
     Format: [(x_1, y_1), (x_2, y_2), ...]
   :param width: width of the output image, in pixels
   :param height: height of the output image, in pixels
+  :param merge_mode: how to merge two tiles if they overlap. The output pixel
+    value depends on the mode:
+      - 'max' (default): take the maximum pixel value over all overlapping tiles
+      - 'sum': take the sum of pixel values over all overlapping tiles
+      - 'fifo': tiles are painted in order. Take the pixel of the last tile.
   :return: the merged image, as an np.array shaped [c, height, width]
   """
+  merge_fns = {
+    'max': np.maximum,
+    'sum': np.add,
+    'fifo': lambda old, new: new,
+  }
+  assert merge_mode in merge_fns.keys()
+  merge_fn = merge_fns[merge_mode]
+
   channels = tiles[0].shape[0]
   image = np.zeros((channels, height, width))
   for tile, (x, y) in zip(tiles, tile_xys):
     tile_c, tile_h, tile_w = tile.shape
-    image[:, y:y + tile_h, x:x + tile_w] = tile
+    old = image[:, y:y + tile_h, x:x + tile_w]
+    image[:, y:y + tile_h, x:x + tile_w] = merge_fn(old, tile)
   return image
