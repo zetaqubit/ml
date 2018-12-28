@@ -233,21 +233,3 @@ def resize(image, width, height):
   image = image.transpose(2, 1, 0)
   return image
 
-
-def tile_image(tiles, tile_yxs, height, width):
-  """Creates an image by blitting tiles at specified locations.
-
-  :param tiles: list of np.arrays shaped [c, h, w]
-  :param tile_yxs: corresponding list of locations to place the tiles. These
-    are the output coordinates of the top-left corners of the tiles.
-    Format: [(y_1, x_1), (y_2, x_2), ...]
-  :param height: height of the output image, in pixels
-  :param width: width of the output image, in pixels
-  :return: the merged image, as an np.array shaped [c, height, width]
-  """
-  channels = tiles[0].shape[0]
-  image = np.zeros((channels, height, width))
-  for tile, (y, x) in zip(tiles, tile_yxs):
-    tile_c, tile_h, tile_w = tile.shape
-    image[:, y:y+tile_h, x:x+tile_w] = tile
-  return image
