@@ -28,22 +28,23 @@ class SyntheticDataset(th.utils.data.TensorDataset):
     :param height:
     :param num_images:
     :param tiles_per_image:
-    :param tile_images: shape [n, c, h, w]
-    :param tile_labels: shape [n]
-    :param label_fn: (tile_label1, tile_label2, ...) -> image_label
+    :param tile_images: np.array, shape [n, c, h, w]
+    :param tile_labels: np.array, shape [n]
+    :param label_fn: [tile_label1, tile_label2, ...] -> image_label
     :param seed:
     """
     assert tile_images.ndim == 4
     assert tile_labels.ndim == 1
     assert tile_images.shape[0] == tile_labels.shape[0] > 0
 
+    channels = tile_images.shape[1]
     self._width = width
     self._height = height
     self._tiles_per_image = tiles_per_image
 
     self._rand = np.random.RandomState(seed)
 
-    self._images = np.empty((num_images, 1, height, width))
+    self._images = np.empty((num_images, channels, height, width))
     self._labels = np.empty((num_images,))
 
     for i in range(num_images):
@@ -60,8 +61,8 @@ class SyntheticDataset(th.utils.data.TensorDataset):
 
     # Sample (x, y) for each tile.
     # TODO: add option to disallow overlapping tile placement.
-    max_x = self._width - tile_w
-    max_y = self._height - tile_h
+    max_x = self._width - tile_w + 1
+    max_y = self._height - tile_h + 1
     tile_xys = [(self._rand.randint(max_x), self._rand.randint(max_y))
                 for _ in range(self._tiles_per_image)]
 
