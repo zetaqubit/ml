@@ -13,9 +13,9 @@ class SyntheticDatasetTest(unittest.TestCase):
   def setUp(self):
     self._tile_images = np.stack([
       # C x H x W
-      np.full((1, 3, 2), 1),
-      np.full((1, 3, 2), 2),
-      np.full((1, 3, 2), 3),
+      np.full((1, 2, 3), 1),
+      np.full((1, 2, 3), 2),
+      np.full((1, 2, 3), 3),
     ])
 
     self._tile_labels = np.array([1, 10, 100])
@@ -50,13 +50,34 @@ class SyntheticDatasetTest(unittest.TestCase):
     np.testing.assert_array_equal(np.repeat(labels, 100), ds.labels)
 
   @staticmethod
-  def _combinations_xy_shift(self, image, x_shifts, y_shifts):
+  def _combinations_xy_shift(image, x_shifts, y_shifts):
     images = []
     for x_shift in x_shifts:
       x_shifted = np.roll(image, x_shift, axis=-1)
       for y_shift in y_shifts:
         images.append(np.roll(x_shifted, y_shift, axis=-2))
     return np.stack(images)
+
+  def test_multiple_tiles_large_image(self):
+    ds = synthetic_dataset.SyntheticDataset(5, 4, 3, 2, self._tile_images,
+                                            self._tile_labels)
+    expected_images = np.array([
+      [[[0, 0, 0, 0, 0],
+        [1, 1, 1, 0, 0],
+        [1, 2, 2, 2, 0],
+        [0, 2, 2, 2, 0]]],
+
+      [[[1, 1, 1, 0, 0],
+        [1, 1, 1, 0, 0],
+        [3, 3, 3, 0, 0],
+        [3, 3, 3, 0, 0]]],
+
+      [[[0, 0, 2, 2, 2],
+        [0, 3, 3, 3, 2],
+        [0, 3, 3, 3, 0],
+        [0, 0, 0, 0, 0]]]])
+    np.testing.assert_array_equal(expected_images, ds.images)
+    np.testing.assert_array_equal([11, 101, 110], ds.labels)
 
   def test_label_fn(self):
     # Generate enough images that all possible combinations of the labels
