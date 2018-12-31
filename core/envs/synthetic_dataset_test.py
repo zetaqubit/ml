@@ -63,29 +63,39 @@ class SyntheticDatasetTest(unittest.TestCase):
     # are present.
     ds = synthetic_dataset.SyntheticDataset(
         4, 4, 100, 2, self._tile_images, self._tile_labels, label_fn=np.sum)
-    expected_labels = {2, 11, 20, 101, 110, 200}
-    self.assertEqual(expected_labels, set(ds.labels.flat))
+    expected_labels = [2, 11, 20, 101, 110, 200]
+    self.assertEqual(expected_labels, sorted(np.unique(ds.labels)))
 
     ds = synthetic_dataset.SyntheticDataset(
         4, 4, 100, 2, self._tile_images, self._tile_labels, label_fn=np.min)
-    expected_labels = {1, 10, 100}
-    self.assertEqual(expected_labels, set(ds.labels.flat))
+    expected_labels = [1, 10, 100]
+    self.assertEqual(expected_labels, sorted(np.unique(ds.labels)))
 
     ds = synthetic_dataset.SyntheticDataset(
         4, 4, 100, 2, self._tile_images, self._tile_labels, label_fn=np.mean)
-    expected_labels = {1, 5.5, 10, 50.5, 55, 100}
-    self.assertEqual(expected_labels, set(ds.labels.flat))
+    expected_labels = [1, 5.5, 10, 50.5, 55, 100]
+    self.assertEqual(expected_labels, sorted(np.unique(ds.labels)))
 
     # Check that it works with more than 2 tiles_per_image.
     ds = synthetic_dataset.SyntheticDataset(
         4, 4, 100, 3, self._tile_images, self._tile_labels, label_fn=np.sum)
     triples = itertools.combinations_with_replacement(self._tile_labels, 3)
-    expected_labels = set(map(sum, triples))
-    self.assertEqual(expected_labels, set(ds.labels.flat))
+    expected_labels = sorted(list(set(map(sum, triples))))
+    self.assertEqual(expected_labels, sorted(np.unique(ds.labels)))
 
 
 class MnistSyntheticDatasetTest(unittest.TestCase):
-  pass
+
+  def test_dataset_creation(self):
+    ds = synthetic_dataset.MnistSyntheticDataset(
+        width=200, height=100, num_images=20000, tiles_per_image=4)
+
+    self.assertEqual((20000, 1, 100, 200), ds.images.shape)
+    self.assertEqual((20000,), ds.labels.shape)
+
+    quintuples = itertools.combinations_with_replacement(range(10), 4)
+    expected_labels = sorted(list(set(map(sum, quintuples))))
+    self.assertEqual(expected_labels, sorted(np.unique(ds.labels)))
 
 
 class TileImageTest(unittest.TestCase):
