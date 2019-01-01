@@ -187,7 +187,7 @@ class ImageWorld(gym.core.Env):
   def seed(self, seed=None):
     """Sets the seed for this env's random number generator(s).
 
-    :param seed: seed to use for all RGN in this environment. Default of
+    :param seed: seed to use for all RNG in this environment. Default of
       None selects a random seed.
     :return: the random seed supplied (if any) or selected. Using this value
       to seed a future Env guarantees full reproducibility.

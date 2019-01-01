@@ -19,19 +19,36 @@ import torchvision as tv
 
 
 class SyntheticDataset(th.utils.data.TensorDataset):
+  """A synthetic image dataset created by sampling and composing tiles.
+
+  Given a source image dataset of (tile_images, tile_labels) shaped
+  ([n, c, h, w], [n]), construct the SyntheticDataset of
+  (synth_images, synth_labels) shaped ([N, c, H, W]), [N]), where N, H, and W
+  are user-specified.
+
+  Each image is synthesized by sampling `tiles_per_image` tiles and placing each
+  at a random location in the WxH output image, initially all 0s. The
+  label is synthesized by applying a function (defaulting to sum) over the
+  labels of the sampled tiles.
+  """
 
   def __init__(self, width, height, num_images, tiles_per_image,
                tile_images, tile_labels, label_fn=np.sum, seed=0):
-    """
+    """Creates a SyntheticDataset from a tile dataset.
 
-    :param width:
-    :param height:
-    :param num_images:
-    :param tiles_per_image:
-    :param tile_images: np.array, shape [n, c, h, w]
-    :param tile_labels: np.array, shape [n]
-    :param label_fn: [tile_label1, tile_label2, ...] -> image_label
-    :param seed:
+    :param width: width of the synthesized image, in pixels
+    :param height: height of the synthesized image, in pixels
+    :param num_images: number of images to generate
+    :param tiles_per_image: number of tiles to sample for each synthesized image
+    :param tile_images: tiles to use to construct images. np.array shaped
+      [n, c, h, w]
+    :param tile_labels: labels of the tiles, used to construct the image labels.
+      np.array, shape [n]
+    :param label_fn: function that takes in `tiles_per_image` tile labels and
+      outputs the image label. Defaults to sum of tile labels.
+      np.array([tile_label1, tile_label2, ...]) -> image_label
+    :param seed: random seed used in sampling tiles and positioning them in the
+      synthesized images.
     """
     assert tile_images.ndim == 4
     assert tile_labels.ndim == 1
@@ -72,23 +89,51 @@ class SyntheticDataset(th.utils.data.TensorDataset):
 
   @property
   def images(self):
+    """Synthesized images, as np.array shaped [num_images, c, height, width]."""
     return self._images
 
   @property
   def labels(self):
+    """Synthesized labels, as np.array shaped [num_images]."""
     return self._labels
 
 
-def MnistSyntheticDataset(mnist_dir='~/code/data/mnist', train=True, **kwargs):
-  mnist_dataset = tv.datasets.MNIST(
-      mnist_dir, train, transform=tv.transforms.ToTensor(), download=True)
-  images = mnist_dataset.data.numpy()
-  labels = mnist_dataset.targets.numpy()
+class MnistSyntheticDataset(SyntheticDataset):
+  """SyntheticDataset created from MNIST image tiles.
 
-  # [n, h, w] -> [n, c, h, w]
-  images = np.expand_dims(images, axis=1)
+  Each synthesized image contains randomly-placed MNIST images. The synthesized
+  label is a function (defaulting to sum) of the MNIST digit labels.
+  """
 
-  return SyntheticDataset(tile_images=images, tile_labels=labels, **kwargs)
+  def __init__(self, width, height, num_images, tiles_per_image,
+               mnist_dir='~/code/data/mnist', train=True, label_fn=np.sum,
+               seed=0):
+    """Creates an MnistSyntheticDataset using MNIST as a tile dataset.
+
+    :param width: width of the synthesized image, in pixels
+    :param height: height of the synthesized image, in pixels
+    :param num_images: number of images to generate
+    :param tiles_per_image: number of tiles to sample for each synthesized image
+    :param mnist_dir: directory to load MNIST from if it exists; if not,
+      downloads MNIST to this directory.
+    :param train: whether to use the MNIST training or test set.
+    :param label_fn: function that takes in `tiles_per_image` tile labels and
+      outputs the image label. Defaults to sum of tile labels.
+      np.array([tile_label1, tile_label2, ...]) -> image_label
+    :param seed: random seed used in sampling tiles and positioning them in the
+      synthesized images.
+    """
+    mnist_dataset = tv.datasets.MNIST(
+        mnist_dir, train, transform=tv.transforms.ToTensor(), download=True)
+    images = mnist_dataset.data.numpy()
+    labels = mnist_dataset.targets.numpy()
+
+    # [n, h, w] -> [n, c, h, w]
+    images = np.expand_dims(images, axis=1)
+
+    super().__init__(width, height, num_images, tiles_per_image,
+                     tile_images=images, tile_labels=labels, label_fn=label_fn,
+                     seed=seed)
 
 
 def tile_image(tiles, tile_xys, width, height, merge_mode='max'):
