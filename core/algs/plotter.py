@@ -9,6 +9,7 @@ from rl.core.algs import util
 
 Point = collections.namedtuple('Point', 'x y')
 
+
 class Plotter(object):
 
   def __init__(self, log_dir=None):
