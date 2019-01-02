@@ -203,6 +203,14 @@ class ImageWorld(gym.core.Env):
     return self._current_image_index
 
   @property
+  def image(self):
+    return self._images[self._current_image_index]
+
+  @property
+  def label(self):
+    return self._labels[self._current_image_index]
+
+  @property
   def minimap(self):
     return self._images_mini[self._current_image_index]
 
