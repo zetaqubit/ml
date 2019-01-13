@@ -7,6 +7,17 @@ import torch as th
 
 from rl.core.algs import util
 
+ConvSpec = collections.namedtuple('ConvSpec', ['width', 'stride', 'depth'])
+
+# Network used in the Atari DQN paper.
+DQN_CONV_SPECS = [
+  ConvSpec(8, 4, 32),
+  ConvSpec(4, 2, 64),
+  ConvSpec(3, 1, 64),
+]
+
+DQN_FC_SPECS = (512,)
+
 
 def _fc_nn(dims, fn=th.nn.ReLU, last_fn=None):
   layers = []
@@ -18,7 +29,20 @@ def _fc_nn(dims, fn=th.nn.ReLU, last_fn=None):
   return th.nn.Sequential(*layers)
 
 
-def _conv_nn(conv_specs, in_shape, fn=th.nn.ReLU, last_fn=None):
+def cnn(conv_specs, in_shape, fn=th.nn.ReLU, last_fn=None, bn=False):
+  """Creates a CNN model with the given specs.
+
+  Args:
+    conv_specs: list of `ConvSpec`s
+    in_shape: shape of the input image, as HxWxC.
+    fn: activation function of every layer, except last layer.
+    last_fn: activation function of the last layer.
+    bn: whether to use batch normalization after each activation, except
+      last layer.
+  Returns:
+    A torch.Model implementing the CNN
+    Output Tensor shape, as (H, W, C) tuple
+  """
   out_shape = list(in_shape)
 
   def calc_width(in_w, kernel_w, stride):
@@ -29,9 +53,13 @@ def _conv_nn(conv_specs, in_shape, fn=th.nn.ReLU, last_fn=None):
   for i, conv_spec in enumerate(conv_specs):
     layers.append(th.nn.Conv2d(last_depth, conv_spec.depth, conv_spec.width,
                                conv_spec.stride))
-    activation_fn = fn if i < len(conv_specs) - 1 else last_fn
+    not_last_layer = i < len(conv_specs) - 1
+    activation_fn = fn if not_last_layer else last_fn
     if activation_fn:
       layers.append(activation_fn())
+
+    if bn and not_last_layer:
+      layers.append(th.nn.BatchNorm2d(conv_spec.depth))
 
     last_depth = conv_spec.depth
     out_shape[-1] = last_depth  # Channels
@@ -178,17 +206,6 @@ class ValueNetwork(th.nn.Module):
     return self.nn(x)
 
 
-ConvSpec = collections.namedtuple('ConvSpec', ['width', 'stride', 'depth'])
-
-# Network used in the Atari DQN paper.
-DQN_CONV_SPECS = [
-  ConvSpec(8, 4, 32),
-  ConvSpec(4, 2, 64),
-  ConvSpec(3, 1, 64),
-]
-
-DQN_FC_SPECS = (512,)
-
 class QNetwork(th.nn.Module):
   """Q-network with convs and fc, with one action-value output per action.
 
@@ -204,8 +221,8 @@ class QNetwork(th.nn.Module):
     """
     super().__init__()
 
-    self.convs, conv_out_shape = _conv_nn(conv_specs, obs_dim, fn=th.nn.ReLU,
-                                          last_fn=th.nn.ReLU)
+    self.convs, conv_out_shape = cnn(conv_specs, obs_dim, fn=th.nn.ReLU,
+                                     last_fn=th.nn.ReLU)
     print(conv_out_shape)
     assert (np.array(conv_out_shape) > 0).all()
     fc_in_size = int(np.product(conv_out_shape))
