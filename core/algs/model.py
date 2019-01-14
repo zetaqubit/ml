@@ -9,7 +9,7 @@ import torch as th
 from rl.core.algs import util
 
 
-@dataclass
+@dataclass(frozen=True)
 class ConvSpec:
   depth: int
   width: int
@@ -37,27 +37,21 @@ def _fc_nn(dims, fn=th.nn.ReLU, last_fn=None):
   return th.nn.Sequential(*layers)
 
 
-def cnn(conv_specs, in_shape, fn=th.nn.ReLU, last_fn=None, bn=False):
+def cnn(conv_specs, in_depth, fn=th.nn.ReLU, last_fn=None, bn=False):
   """Creates a CNN model with the given specs.
 
   Args:
-    conv_specs: list of `ConvSpec`s
-    in_shape: shape of the input image, as HxWxC.
+    conv_specs: list of `ConvSpec`s defining the CNN.
+    in_depth: input channels.
     fn: activation function of every layer, except last layer.
     last_fn: activation function of the last layer.
     bn: whether to use batch normalization after each activation, except
       last layer.
   Returns:
     A torch.Model implementing the CNN
-    Output Tensor shape, as (H, W, C) tuple
   """
-  out_shape = list(in_shape)
-
-  def calc_width(in_w, kernel_w, stride, padding):
-    return math.floor((in_w + 2 * padding - kernel_w) / stride + 1)
-
   layers = []
-  last_depth = in_shape[-1]
+  last_depth = in_depth
   for i, spec in enumerate(conv_specs):
     layers.append(th.nn.Conv2d(last_depth, spec.depth, spec.width,
                                spec.stride, spec.padding))
@@ -70,12 +64,31 @@ def cnn(conv_specs, in_shape, fn=th.nn.ReLU, last_fn=None, bn=False):
       layers.append(th.nn.BatchNorm2d(spec.depth))
 
     last_depth = spec.depth
-    out_shape[-1] = last_depth  # Channels
+  return th.nn.Sequential(*layers)
+
+
+def cnn_shape(conv_specs, in_shape):
+  """Calculates the output shape after running CNN on image of in_shape.
+
+  Args:
+    conv_specs: list of `ConvSpec`s defining the CNN.
+    in_shape: shape of the input image, as [H, W, C].
+  Returns:
+    The output shape as a tuple, as [H, W, C].
+  """
+  out_shape = list(in_shape)
+
+  def calc_width(in_w, kernel_w, stride, padding):
+    return math.floor((in_w + 2 * padding - kernel_w) / stride + 1)
+
+  for spec in conv_specs:
+    out_shape[-1] = spec.depth
     out_shape[-2] = calc_width(out_shape[-2], spec.width, spec.stride,
                                spec.padding)
     out_shape[-3] = calc_width(out_shape[-3], spec.width, spec.stride,
                                spec.padding)
-  return th.nn.Sequential(*layers), tuple(out_shape)
+  return tuple(out_shape)
+
 
 
 class DiscreteActionModel(th.nn.Module):
@@ -231,8 +244,8 @@ class QNetwork(th.nn.Module):
     """
     super().__init__()
 
-    self.convs, conv_out_shape = cnn(conv_specs, obs_dim, fn=th.nn.ReLU,
-                                     last_fn=th.nn.ReLU)
+    self.convs = cnn(conv_specs, obs_dim[-1], fn=th.nn.ReLU, last_fn=th.nn.ReLU)
+    conv_out_shape = cnn_shape(conv_specs, obs_dim)
     print(conv_out_shape)
     assert (np.array(conv_out_shape) > 0).all()
     fc_in_size = int(np.product(conv_out_shape))
