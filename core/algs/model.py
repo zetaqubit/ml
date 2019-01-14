@@ -1,4 +1,5 @@
 import collections
+from dataclasses import dataclass
 import functools
 import math
 
@@ -7,7 +8,14 @@ import torch as th
 
 from rl.core.algs import util
 
-ConvSpec = collections.namedtuple('ConvSpec', ['width', 'stride', 'depth'])
+#ConvSpec = collections.namedtuple('ConvSpec', ['width', 'stride', 'depth'])
+
+
+@dataclass
+class ConvSpec:
+  width: int
+  stride: int
+  depth: int
 
 # Network used in the Atari DQN paper.
 DQN_CONV_SPECS = [
