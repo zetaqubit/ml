@@ -8,20 +8,20 @@ import torch as th
 
 from rl.core.algs import util
 
-#ConvSpec = collections.namedtuple('ConvSpec', ['width', 'stride', 'depth'])
-
 
 @dataclass
 class ConvSpec:
-  width: int
-  stride: int
   depth: int
+  width: int
+  stride: int = 1
+  padding: int = 0
+
 
 # Network used in the Atari DQN paper.
 DQN_CONV_SPECS = [
-  ConvSpec(8, 4, 32),
-  ConvSpec(4, 2, 64),
-  ConvSpec(3, 1, 64),
+  ConvSpec(32, 8, 4),
+  ConvSpec(64, 4, 2),
+  ConvSpec(64, 3, 1),
 ]
 
 DQN_FC_SPECS = (512,)
@@ -53,26 +53,28 @@ def cnn(conv_specs, in_shape, fn=th.nn.ReLU, last_fn=None, bn=False):
   """
   out_shape = list(in_shape)
 
-  def calc_width(in_w, kernel_w, stride):
-    return math.floor((in_w - kernel_w) / stride + 1)
+  def calc_width(in_w, kernel_w, stride, padding):
+    return math.floor((in_w + 2 * padding - kernel_w) / stride + 1)
 
   layers = []
   last_depth = in_shape[-1]
-  for i, conv_spec in enumerate(conv_specs):
-    layers.append(th.nn.Conv2d(last_depth, conv_spec.depth, conv_spec.width,
-                               conv_spec.stride))
+  for i, spec in enumerate(conv_specs):
+    layers.append(th.nn.Conv2d(last_depth, spec.depth, spec.width,
+                               spec.stride, spec.padding))
     not_last_layer = i < len(conv_specs) - 1
     activation_fn = fn if not_last_layer else last_fn
     if activation_fn:
       layers.append(activation_fn())
 
     if bn and not_last_layer:
-      layers.append(th.nn.BatchNorm2d(conv_spec.depth))
+      layers.append(th.nn.BatchNorm2d(spec.depth))
 
-    last_depth = conv_spec.depth
+    last_depth = spec.depth
     out_shape[-1] = last_depth  # Channels
-    out_shape[-2] = calc_width(out_shape[-2], conv_spec.width, conv_spec.stride)
-    out_shape[-3] = calc_width(out_shape[-3], conv_spec.width, conv_spec.stride)
+    out_shape[-2] = calc_width(out_shape[-2], spec.width, spec.stride,
+                               spec.padding)
+    out_shape[-3] = calc_width(out_shape[-3], spec.width, spec.stride,
+                               spec.padding)
   return th.nn.Sequential(*layers), tuple(out_shape)
 
 
