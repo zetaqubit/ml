@@ -56,6 +56,7 @@ def cnn(conv_specs, in_depth, fn=th.nn.ReLU, last_fn=None, bn=False):
     layers.append(th.nn.Conv2d(last_depth, spec.depth, spec.width,
                                spec.stride, spec.padding))
     not_last_layer = i < len(conv_specs) - 1
+
     activation_fn = fn if not_last_layer else last_fn
     if activation_fn:
       layers.append(activation_fn())
