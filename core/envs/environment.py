@@ -182,6 +182,7 @@ class AtariEnvironment:
       self.env.close()
       self.env.reset()
 
+
 class AtariEnvironmentMine:
   def __init__(self, env_name, action_repeat=4):
     self.env_name = env_name + 'NoFrameskip-v4'

@@ -64,11 +64,11 @@ class ImageWorld(gym.core.Env):
     self._labels = labels
     self._num_classes = num_classes
     self._n, self._c, self._h, self._w = images.shape
+    self._images_mini = self._create_minimaps()
+
     self._rand = None
     self._current_image_index = None
     self.seed()
-
-    self._images_mini = self._create_minimaps()
 
     # Gym-specific attributes
     self._action_space = gym.spaces.Dict({
@@ -182,7 +182,14 @@ class ImageWorld(gym.core.Env):
     return l, r, t, b
 
   def reset(self):
+    """Resets the environment, loading a new image.
+
+    :return:
+      observation (np.array): minimap of the new image.
+        Shape [c, win_sz, win_sz].
+    """
     self._current_image_index = self._rand.randint(self._n)
+    return self.minimap
 
   def seed(self, seed=None):
     """Sets the seed for this env's random number generator(s).
