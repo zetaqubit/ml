@@ -45,8 +45,8 @@ def num_params(model: th.nn.Module, only_trainable=False):
 def serialize_params(model: th.nn.Module):
   """Serializes all parameters of a nn.Module to 1-D flattened array."""
   flattened = []
-  for name, tensor in model.state_dict().items():
-    flattened.append(tensor.view(-1).cpu().numpy())
+  for tensor in model.parameters():
+    flattened.append(tensor.view(-1).detach().cpu().numpy())
   return np.concatenate(flattened)
 
 
@@ -54,9 +54,10 @@ def deserialize_params(model: th.nn.Module, flattened):
   """Serializes a 1-D flattened array into parameters of a nn.Module."""
   assert num_params(model) == len(flattened)
   idx = 0
-  for name, tensor in model.state_dict().items():
+  for tensor in model.parameters():
     numel = tensor.numel()
-    tensor[...] = th.from_numpy(flattened[idx:idx + numel]).view(tensor.shape)
+    with th.no_grad():
+      tensor[...] = th.from_numpy(flattened[idx:idx + numel]).view(tensor.shape)
     idx += numel
 
 
