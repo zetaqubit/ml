@@ -1,0 +1,32 @@
+# bazel
+bazel-bin
+bazel-genfiles
+bazel-out
+bazel-testlogs
+bazel-blaze_root
+
+# vim
+*.swp
+
+# ycm
+.ycm_extra_conf.pyc
+
+# LMDB
+**/lock.mdb
+
+# Ignore all data except trained_models
+data/*
+!data/genesis
+data/genesis/*
+!data/genesis/caffe
+data/genesis/caffe/*
+!data/genesis/caffe/trained_models
+
+# Android Studio
+.idea/
+
+# Python
+*.pyc
+
+# IPython Notebook
+.ipynb_checkpoints/
