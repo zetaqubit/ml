@@ -1,5 +1,6 @@
 box2d
 gym
+gym[atari]
 matplotlib
 numpy
 opencv-python
