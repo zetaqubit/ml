@@ -5,6 +5,11 @@ matplotlib
 numpy
 opencv-python
 pandas
+sklearn
 tensorboardX
 torch
 torchvision
+
+# Needed for CS224
+gensim
+nltk
