@@ -17,7 +17,7 @@ def sigmoid(x):
     """
 
     ### YOUR CODE HERE
-
+    s = 1 / (1 + np.exp(-x))
     ### END YOUR CODE
 
     return s
@@ -57,8 +57,27 @@ def naiveSoftmaxLossAndGradient(
     ### Please use the provided softmax function (imported earlier in this file)
     ### This numerically stable implementation helps you avoid issues pertaining
     ### to integer overflow. 
+    u, o, vc = outsideVectors, outsideWordIdx, centerWordVec
+
+    d = len(vc)  # [d]
+    V = u.shape[0]
+    #print(f'd: {d}, V: {V}')
+    assert u.shape[1] == d  # [V, d]
 
 
+    u_vc = u @ vc  # [V]
+    y_hat = softmax(u_vc)  # [V]
+    loss = -np.log(y_hat[o])  # []
+
+    dJ_dvc = -u[o, :] + y_hat @ u  # [d]
+    #print(u[o, :].shape, y_hat.shape, u.shape, dJ_dvc.shape)
+    assert dJ_dvc.shape == (d,)
+
+    dJ_du = np.outer(y_hat, vc)
+    dJ_du[o, :] = (y_hat[o] - 1) * vc
+    assert dJ_du.shape == (V, d)
+
+    gradCenterVec, gradOutsideVecs = dJ_dvc, dJ_du
     ### END YOUR CODE
 
     return loss, gradCenterVec, gradOutsideVecs
@@ -103,10 +122,34 @@ def negSamplingLossAndGradient(
     indices = [outsideWordIdx] + negSampleWordIndices
 
     ### YOUR CODE HERE
-
     ### Please use your implementation of sigmoid in here.
+    u, o, vc = outsideVectors, outsideWordIdx, centerWordVec
+    ks = negSampleWordIndices
 
+    d = len(vc)  # [d]
+    V = u.shape[0]
+    assert u.shape[1] == d  # [V, d]
+    #print(f'd: {d}, V: {V}')
 
+    uidx_vc = u[indices] @ vc  # [k+1]
+    assert uidx_vc.shape == (K+1,)
+    uo_vc = uidx_vc[0] # [d]
+    uks_vc = uidx_vc[1:] # [K, d]
+
+    loss = -np.log(sigmoid(uo_vc)) - np.sum(np.log(sigmoid(-uks_vc)))
+
+    term2 = np.dot(sigmoid(uks_vc), u[ks, :])  # [d]
+    assert term2.shape == (d,)
+    dJ_dvc = -sigmoid(-uo_vc) * u[o, :] + term2  # [d]
+    assert dJ_dvc.shape == (d,)
+
+    dJ_du = np.zeros_like(u)  # [V, d]
+    dJ_du[o, :] += (sigmoid(uo_vc) - 1) * vc
+    for i in range(K):
+        dJ_du[ks[i], :] += sigmoid(uks_vc[i]) * vc
+    assert dJ_du.shape == (V, d)
+
+    gradCenterVec, gradOutsideVecs = dJ_dvc, dJ_du
     ### END YOUR CODE
 
     return loss, gradCenterVec, gradOutsideVecs
@@ -148,6 +191,17 @@ def skipgram(currentCenterWord, windowSize, outsideWords, word2Ind,
     gradOutsideVectors = np.zeros(outsideVectors.shape)
 
     ### YOUR CODE HERE
+    c = word2Ind[currentCenterWord]
+    vc = centerWordVectors[c, :]
+
+
+    for word in outsideWords:
+        o = word2Ind[word]
+        loss_j, gradCenterVec_j, gradOutsideVecs_j = word2vecLossAndGradient(
+            vc, o, outsideVectors, dataset)
+        loss += loss_j
+        gradCenterVecs[c, :] += gradCenterVec_j
+        gradOutsideVectors += gradOutsideVecs_j
 
     ### END YOUR CODE
 
