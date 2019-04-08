@@ -206,6 +206,10 @@ class ImageWorld(gym.core.Env):
     return [seed]
 
   @property
+  def num_images(self):
+    return len(self._images)
+
+  @property
   def current_image_index(self):
     return self._current_image_index
 
