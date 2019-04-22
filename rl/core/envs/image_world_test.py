@@ -3,6 +3,7 @@
 import unittest
 
 import numpy as np
+import torch as th
 
 from rl.core.envs import image_world
 
@@ -49,16 +50,16 @@ class ImageWorldTest(unittest.TestCase):
     env.seed(0)
 
     expected = self._images[0, :, 0:2, 0:2]
-    np.testing.assert_array_equal(expected, env._glimpse(0.25, 0.34))
-    np.testing.assert_array_equal(expected, env._glimpse(0.49, 0.66))
+    np.testing.assert_array_equal(expected, env.glimpse(0.25, 0.34))
+    np.testing.assert_array_equal(expected, env.glimpse(0.49, 0.66))
 
     expected = self._images[0, :, 1:3, 1:3]
-    np.testing.assert_array_equal(expected, env._glimpse(0.50, 0.67))
-    np.testing.assert_array_equal(expected, env._glimpse(0.74, 0.99))
+    np.testing.assert_array_equal(expected, env.glimpse(0.50, 0.67))
+    np.testing.assert_array_equal(expected, env.glimpse(0.74, 0.99))
 
     expected = self._images[0, :, 1:3, 2:4]
-    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0.67))
-    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0.99))
+    np.testing.assert_array_equal(expected, env.glimpse(0.75, 0.67))
+    np.testing.assert_array_equal(expected, env.glimpse(0.75, 0.99))
 
   def test_glimpse_padded(self):
     env = self._create_env(window_size=3)
@@ -69,40 +70,54 @@ class ImageWorldTest(unittest.TestCase):
       [0, 11, 12],
       [0, 21, 22],
     ]])
-    np.testing.assert_array_equal(expected, env._glimpse(0, 0))
-    np.testing.assert_array_equal(expected, env._glimpse(0.24, 0.33))
+    np.testing.assert_array_equal(expected, env.glimpse(0, 0))
+    np.testing.assert_array_equal(expected, env.glimpse(0.24, 0.33))
 
     expected = np.array([[
       [0, 0, 0],
       [11, 12, 13],
       [21, 22, 23],
     ]])
-    np.testing.assert_array_equal(expected, env._glimpse(0.25, 0))
-    np.testing.assert_array_equal(expected, env._glimpse(0.49, 0.33))
+    np.testing.assert_array_equal(expected, env.glimpse(0.25, 0))
+    np.testing.assert_array_equal(expected, env.glimpse(0.49, 0.33))
 
     expected = np.array([[
       [0, 0, 0],
       [13, 14, 0],
       [23, 24, 0],
     ]])
-    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0))
-    np.testing.assert_array_equal(expected, env._glimpse(0.99, 0.33))
+    np.testing.assert_array_equal(expected, env.glimpse(0.75, 0))
+    np.testing.assert_array_equal(expected, env.glimpse(0.99, 0.33))
 
     expected = np.array([[
       [13, 14, 0],
       [23, 24, 0],
       [33, 34, 0],
     ]])
-    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0.34))
-    np.testing.assert_array_equal(expected, env._glimpse(0.99, 0.66))
+    np.testing.assert_array_equal(expected, env.glimpse(0.75, 0.34))
+    np.testing.assert_array_equal(expected, env.glimpse(0.99, 0.66))
 
     expected = np.array([[
       [23, 24, 0],
       [33, 34, 0],
       [0, 0, 0],
     ]])
-    np.testing.assert_array_equal(expected, env._glimpse(0.75, 0.67))
-    np.testing.assert_array_equal(expected, env._glimpse(0.99, 0.99))
+    np.testing.assert_array_equal(expected, env.glimpse(0.75, 0.67))
+    np.testing.assert_array_equal(expected, env.glimpse(0.99, 0.99))
+
+  def test_glimpse_batch(self):
+    expected = np.stack([self._images[0, :, 0:2, 0:2],
+                         self._images[1, :, 1:3, 2:4]])
+    actual = image_world.glimpse_batch(
+        th.Tensor([0.25, 0.75]), th.Tensor([0.34, 0.67]),
+        th.from_numpy(self._images), win_sz=2).numpy()
+    np.testing.assert_array_equal(expected, actual)
+
+  def test_glimpse_batch_checks_bounds(self):
+    with self.assertRaises(AssertionError):
+      for x, y in ((-0.1, 0), (1.1, 0), (0, -0.1), (0, 1.1)):
+        image_world.glimpse_batch(th.Tensor([x, 0]), th.Tensor([0, y]),
+                                  th.from_numpy(self._images), 3)
 
   def test_step_glimpse(self):
     env = self._create_env(window_size=2)

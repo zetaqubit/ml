@@ -19,6 +19,7 @@ import gym
 import gym.utils.seeding
 import gym.spaces
 import numpy as np
+import torch as th
 
 
 class ImageWorld(gym.core.Env):
@@ -144,42 +145,23 @@ class ImageWorld(gym.core.Env):
 
     assert len(window) == 2  # TODO: support zoom
     x, y = window
-    obs = self._glimpse(x, y)
+    obs = self.glimpse(x, y)
     return obs, self.REWARD_GLIMPSE, False, {}
 
-  def _glimpse(self, x, y):
+  def glimpse(self, x, y):
     """Moves the view window to (x, y) and returns the image patch there.
 
     :param x: x-coordinates of the window, in range [0, 1).
     :param y: y-coordinates of the window, in range [0, 1).
     :return: image patch visible through the window. Shape [c, win_sz, win_sz].
     """
-    assert 0 <= x <= 1 and 0 <= y <= 1
-
     image = self._images[self._current_image_index]
-
-    center_x, center_y = int(x * self._w), int(y * self._h)
-
-    w_before = self._win_sz // 2
-    w_after = self._win_sz - w_before
-    l, r = center_x - w_before, center_x + w_after
-    t, b = center_y - w_before, center_y + w_after
-
-    out_l, out_r = max(0, -l), self._win_sz - max(0, r - self._w)
-    out_t, out_b = max(0, -t), self._win_sz - max(0, b - self._h)
-
-    in_l, in_r, in_t, in_b = self._clamp_to_bounds(l, r, t, b)
-
-    patch = np.zeros((self._c, self._win_sz, self._win_sz))
-    patch[:, out_t:out_b, out_l:out_r] = image[:, in_t:in_b, in_l:in_r]
-    return patch
-
-  def _clamp_to_bounds(self, l, r, t, b):
-    l = np.clip(l, 0, self._w)
-    r = np.clip(r, 0, self._w)
-    t = np.clip(t, 0, self._h)
-    b = np.clip(b, 0, self._h)
-    return l, r, t, b
+    images = np.expand_dims(image, axis=0)
+    glimpses = glimpse_batch(th.from_numpy(np.array([x], dtype=np.float32)),
+                             th.from_numpy(np.array([y], dtype=np.float32)),
+                             th.from_numpy(images),
+                             self._win_sz)
+    return glimpses[0].numpy()
 
   def reset(self):
     """Resets the environment, loading a new image.
@@ -251,4 +233,53 @@ def resize(image, width, height):
     image = np.expand_dims(image, -1)  # Add channel back.
   image = image.transpose(2, 1, 0)
   return image
+
+
+def glimpse_batch(x, y, images, win_sz, visualize=False):
+  """Extracts glimpse patches centered at specified locations for each image.
+
+  :param x: x-coordinates of the window, in range [0, 1). Shape [b].
+  :param y: y-coordinates of the window, in range [0, 1). Shape [b].
+  :param images: full-size images. Shaped [b, c, h, w]
+  :param win_sz: size of the glimpse patch, in pixels.
+  :return: image patch visible through the window. Shape [b, c, win_sz, win_sz].
+  """
+  assert ((0 <= x) & (x <= 1)).all()
+  assert ((0 <= y) & (y <= 1)).all()
+
+  batch, c, h, w = images.shape
+  center_x, center_y = th.floor(x * w), th.floor(y * h)
+
+  w_before = win_sz // 2
+  w_after = win_sz - w_before
+  l, r = center_x - w_before, center_x + w_after
+  t, b = center_y - w_before, center_y + w_after
+
+  zero = th.tensor(0).type_as(l)
+  out_l, out_r = th.max(zero, -l), win_sz - th.max(zero, r - w)
+  out_t, out_b = th.max(zero, -t), win_sz - th.max(zero, b - h)
+
+  in_l, in_r, in_t, in_b = _clamp_to_bounds(l, r, t, b, w, h)
+
+  def as_int(*tensors):
+    return [x.int() for x in tensors]
+  in_l, in_r, in_t, in_b = as_int(in_l, in_r, in_t, in_b)
+  out_l, out_r, out_t, out_b = as_int(out_l, out_r, out_t, out_b)
+
+  patch = th.zeros((batch, c, win_sz, win_sz)).type_as(images)
+  for i in range(batch):
+    patch[i, :, out_t[i]:out_b[i], out_l[i]:out_r[i]] = (
+        images[i, :, in_t[i]:in_b[i], in_l[i]:in_r[i]])
+    if visualize:
+      images[i, :, in_t[i]:in_b[i], in_l[i]:in_r[i]] += 100
+
+  return patch
+
+
+def _clamp_to_bounds(l, r, t, b, w, h):
+  l = th.clamp(l, 0, w)
+  r = th.clamp(r, 0, w)
+  t = th.clamp(t, 0, h)
+  b = th.clamp(b, 0, h)
+  return l, r, t, b
 
