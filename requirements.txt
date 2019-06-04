@@ -6,7 +6,7 @@ numpy
 opencv-python
 pandas
 sklearn
-tensorboardX
+tb-nightly
 torch
 torchvision
 

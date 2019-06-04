@@ -3,7 +3,7 @@ import os
 
 from matplotlib import pyplot as plt
 import numpy as np
-import tensorboardX as tb
+from torch.utils import tensorboard as tb
 
 from rl.core.algs import util
 
@@ -18,7 +18,7 @@ class Plotter(object):
     if log_dir:
       log_dir = util.get_next_filename(log_dir)
       os.makedirs(log_dir)
-    self.writer = SummaryWriter(log_dir)
+    self.writer = tb.SummaryWriter(log_dir)
 
   def add_data(self, key, x, y):
     self.points[key].append(Point(x, y))
@@ -75,11 +75,4 @@ class Plotter(object):
     idx = np.argpartition(ys, -k)[-k:]
     idx = idx[np.argsort(ys[idx])][::-1]
     return zip(xs[idx], ys[idx])
-
-
-class SummaryWriter(tb.SummaryWriter):
-  def add_graph(self, model, input_to_model=None, **kwargs):
-    if input_to_model is None:
-      input_to_model = util.to_tensor(np.zeros((1, 1)))
-    return super().add_graph(model, input_to_model, **kwargs)
 
