@@ -1,4 +1,4 @@
-box2d
+box2d-py
 gym
 gym[atari]
 matplotlib
