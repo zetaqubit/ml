@@ -235,7 +235,7 @@ def resize(image, width, height):
   return image
 
 
-def glimpse_batch(x, y, images, win_sz, visualize=False):
+def glimpse_batch(x, y, images, win_sz, visualize=None):
   """Extracts glimpse patches centered at specified locations for each image.
 
   :param x: x-coordinates of the window, in range [0, 1). Shape [b].
@@ -270,8 +270,10 @@ def glimpse_batch(x, y, images, win_sz, visualize=False):
   for i in range(batch):
     patch[i, :, out_t[i]:out_b[i], out_l[i]:out_r[i]] = (
         images[i, :, in_t[i]:in_b[i], in_l[i]:in_r[i]])
-    if visualize:
-      images[i, :, in_t[i]:in_b[i], in_l[i]:in_r[i]] += 100
+    if visualize is not None:
+      val_op = getattr(visualize, '__getitem__')
+      val = 10 * val_op(i) if val_op else visualize
+      images[i, :, in_t[i]:in_b[i], in_l[i]:in_r[i]] += val
 
   return patch
 
