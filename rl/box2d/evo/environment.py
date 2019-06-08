@@ -14,7 +14,7 @@ class Agent:
     self._body = body
 
   def move(self, forces):
-    """Applies forces to move the agent.
+    """Applies local forces to move the agent.
 
     Args:
      forces: array of forces to apply.
@@ -26,6 +26,18 @@ class Agent:
     forward = b.GetWorldVector((0, 1))
     b.ApplyForceToCenter(forces[0] * forward, wake=True)
     b.ApplyTorque(forces[1], wake=True)
+
+  def move_global(self, forces):
+    """Applies global reference forces to move the agent.
+
+    Args:
+     forces: array of forces to apply.
+       [0]: right/left
+       [1]: up/down
+    """
+    b = self._body
+    force_vec = b2.vec2(forces)
+    b.ApplyForceToCenter(force_vec, wake=True)
 
 class Environment(framework.Framework):
   name = "2D Environment"  # Name of the class to display
@@ -89,7 +101,8 @@ class Environment(framework.Framework):
     pos = self._unit_to_world(np.random.rand(2))
     food = self.world.CreateBody(position=pos)
     food.CreateCircleFixture(radius=0.4,
-                             categoryBits=self._CAT_FOOD)
+                             categoryBits=self._CAT_FOOD,
+                             isSensor=True)
 
   def _spawn_agent(self, pos=(0, 0)):
     body = self.world.CreateDynamicBody(
@@ -110,17 +123,31 @@ class Environment(framework.Framework):
   def CheckKeys(self):
     super().CheckKeys()
 
-    # ESDF in Dvorak for movement.
-    move_force = np.zeros(2)
-    if self.keys[pygame.K_PERIOD]:
-      move_force[0] += self._AGENT_MOVE_FORCE
-    if self.keys[pygame.K_e]:
-      move_force[0] -= self._AGENT_MOVE_FORCE
-    if self.keys[pygame.K_o]:
-      move_force[1] += self._AGENT_TURN_FORCE
-    if self.keys[pygame.K_u]:
-      move_force[1] -= self._AGENT_TURN_FORCE
-    self._main_agent.move(move_force)
+    move_global = True
+    if move_global:
+      # ESDF in Dvorak for movement.
+      move_force = np.zeros(2)
+      if self.keys[pygame.K_PERIOD]:
+        move_force[1] += self._AGENT_MOVE_FORCE
+      if self.keys[pygame.K_e]:
+        move_force[1] -= self._AGENT_MOVE_FORCE
+      if self.keys[pygame.K_o]:
+        move_force[0] -= self._AGENT_MOVE_FORCE
+      if self.keys[pygame.K_u]:
+        move_force[0] += self._AGENT_MOVE_FORCE
+      self._main_agent.move_global(move_force)
+    else:
+      # ESDF in Dvorak for movement.
+      move_force = np.zeros(2)
+      if self.keys[pygame.K_PERIOD]:
+        move_force[0] += self._AGENT_MOVE_FORCE
+      if self.keys[pygame.K_e]:
+        move_force[0] -= self._AGENT_MOVE_FORCE
+      if self.keys[pygame.K_o]:
+        move_force[1] += self._AGENT_TURN_FORCE
+      if self.keys[pygame.K_u]:
+        move_force[1] -= self._AGENT_TURN_FORCE
+      self._main_agent.move(move_force)
 
 
   def Step(self, settings):
