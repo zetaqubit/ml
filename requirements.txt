@@ -5,6 +5,7 @@ matplotlib
 numpy
 opencv-python
 pandas
+pygame
 sklearn
 tb-nightly
 torch
