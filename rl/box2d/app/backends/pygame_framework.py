@@ -345,8 +345,8 @@ class PygameFramework(FrameworkBase):
         self.MouseMove(p)
 
         if self.rMouseDown:
-          self.viewCenter -= (event.rel[0] /
-                              5.0, -event.rel[1] / 5.0)
+          z = self.viewZoom
+          self.viewCenter -= (event.rel[0] / z, -event.rel[1] / z)
 
       if GUIEnabled:
         self.gui_app.event(event)  # Pass the event to the GUI
@@ -431,15 +431,16 @@ class PygameFramework(FrameworkBase):
 
     pygame.event.pump()
     self.keys = keys = pygame.key.get_pressed()
+    c = 5 / self.viewZoom
     if keys[Keys.K_LEFT]:
-      self.viewCenter -= (0.5, 0)
+      self.viewCenter -= (c, 0)
     elif keys[Keys.K_RIGHT]:
-      self.viewCenter += (0.5, 0)
+      self.viewCenter += (c, 0)
 
     if keys[Keys.K_UP]:
-      self.viewCenter += (0, 0.5)
+      self.viewCenter += (0, c)
     elif keys[Keys.K_DOWN]:
-      self.viewCenter -= (0, 0.5)
+      self.viewCenter -= (0, c)
 
     if keys[Keys.K_HOME]:
       self.viewZoom = 1.0
