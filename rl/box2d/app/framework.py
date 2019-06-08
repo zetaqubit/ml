@@ -21,6 +21,7 @@
 """
 The framework's base is FrameworkBase. See its help for more information.
 """
+import importlib
 from time import time
 
 from Box2D import (b2World, b2AABB, b2CircleShape, b2Color, b2Vec2)
@@ -530,7 +531,7 @@ from rl.box2d.app import backends
 
 try:
   framework_name = '%s_framework' % (fwSettings.backend.lower())
-  __import__('backends', globals(), fromlist=[framework_name], level=1)
+  importlib.import_module(framework_name, package=backends.__name__)
   framework_module = getattr(backends, framework_name)
   Framework = getattr(framework_module,
                       '%sFramework' % fwSettings.backend.capitalize())
