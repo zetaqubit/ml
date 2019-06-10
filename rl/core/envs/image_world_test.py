@@ -6,6 +6,7 @@ import numpy as np
 import torch as th
 
 from rl.core.envs import image_world
+from rl.core.envs import synthetic_dataset
 
 
 class ImageWorldTest(unittest.TestCase):
@@ -268,7 +269,7 @@ class TileImageTest(unittest.TestCase):
     ]
 
   def test_tile_image(self):
-    tile_yxs = [(2, 1), (1, 0)]
+    tile_xys = [(1, 2), (0, 1)]
 
     expected = np.array(
       [[
@@ -278,11 +279,11 @@ class TileImageTest(unittest.TestCase):
         [0, 1, 0],
       ]]
     )
-    actual = image_world.tile_image(self._tiles, tile_yxs, 4, 3)
+    actual = synthetic_dataset.tile_image(self._tiles, tile_xys, 3, 4)
     np.testing.assert_array_equal(expected, actual)
 
   def test_tile_image_overlapping(self):
-    tile_yxs = [(1, 1), (1, 0)]
+    tile_xys = [(1, 1), (0, 1)]
 
     expected = np.array(
       [[
@@ -292,11 +293,11 @@ class TileImageTest(unittest.TestCase):
         [0, 0, 0],
       ]]
     )
-    actual = image_world.tile_image(self._tiles, tile_yxs, 4, 3)
+    actual = synthetic_dataset.tile_image(self._tiles, tile_xys, 3, 4)
     np.testing.assert_array_equal(expected, actual)
 
   def test_tile_image_out_of_bounds(self):
-    tile_yxs = [(2, 1), (1, 1)]
+    tile_xys = [(1, 2), (1, 1)]
 
     with self.assertRaises(ValueError):
-      image_world.tile_image(self._tiles, tile_yxs, 4, 3)
+      synthetic_dataset.tile_image(self._tiles, tile_xys, 3, 4)
