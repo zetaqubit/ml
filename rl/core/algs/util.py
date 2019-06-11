@@ -66,6 +66,7 @@ def get_next_filename(dir_path, prefix='', extension=''):
 
   The files are of form <prefix>1, <prefix>2, ...
   """
+  dir_path = os.path.expanduser(dir_path)
   files = glob.glob(os.path.join(dir_path, prefix + '*' + extension))
   numerals = []
   for file in files:
