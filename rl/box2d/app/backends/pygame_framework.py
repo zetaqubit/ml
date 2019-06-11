@@ -387,6 +387,9 @@ class PygameFramework(FrameworkBase):
       if GUIEnabled and self.settings.drawMenu:
         self.gui_app.paint(self.screen)
 
+      if not running:
+        self.OnExit()
+
       pygame.display.flip()
       clock.tick(self.settings.hz)
       self.fps = clock.get_fps()
@@ -506,3 +509,6 @@ class PygameFramework(FrameworkBase):
     See Keyboard() for key information
     """
     pass
+
+  def OnExit(self):
+    """Callback triggered when game is exiting."""
