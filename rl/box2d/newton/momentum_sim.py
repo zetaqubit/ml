@@ -21,9 +21,9 @@ Prediction:
 """
 
 import numpy as np
-import pygame
 
 from rl.box2d.app import framework
+from rl.box2d.newton import box2d_log
 
 from Box2D import b2
 
@@ -36,15 +36,15 @@ class MomentumSim(framework.Framework):
   _PLAY_AREA_SIZE = np.array([40, 40])
 
   def __init__(self):
-    """
-    Initialize all of your objects here.
-    Be sure to call the Framework's initializer first.
-    """
     super().__init__(gravity=(0, 0), screen_size=(800, 1000))
 
+    # Initial conditions.
     self._obj1 = self._create_object((-10, 0))
     self._obj2 = self._create_object(pos=(10, 0), size=(2, 2))
     self._apply_impulse(self._obj1, [120, 0])
+
+    self._log = box2d_log.CsvLog(log_dir='~/code/data/newton/momentum/')
+    self.log_state()
 
   def _unit_to_world(self, unit_coords):
     return self._PLAY_AREA_SIZE * (unit_coords - 0.5)
@@ -73,6 +73,13 @@ class MomentumSim(framework.Framework):
     """
     super().Step(settings)
 
+    self.log_state()
+
+  def log_state(self):
+    state = {'step': self.stepCount}
+    state.update(box2d_log.object_state(self._obj1, '1'))
+    state.update(box2d_log.object_state(self._obj2, '2'))
+    self._log.add(state)
 
   def BeginContact(self, contact):
     print(contact)
@@ -91,6 +98,10 @@ class MomentumSim(framework.Framework):
     The joint passed in was removed.
     """
     pass
+
+  def OnExit(self):
+    self._log.write()
+    print(f'Wrote {self._log.num_events()} events to {self._log.filepath}')
 
 
 if __name__ == "__main__":
