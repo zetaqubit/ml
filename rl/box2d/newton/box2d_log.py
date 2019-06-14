@@ -3,7 +3,9 @@
 import collections
 import pandas as pd
 
+from rl.box2d.newton import box2d_state
 from rl.core.algs import util
+
 
 class CsvLog:
   def __init__(self, log_filepath=None, log_dir=None):
@@ -26,17 +28,15 @@ class CsvLog:
     return len(self._rows)
 
 
-def object_state(b2_obj, name):
-  state = {}
-  pos = b2_obj.worldCenter
-  state[name + '.pos_x'] = pos[0]
-  state[name + '.pos_y'] = pos[1]
-  state[name + '.pos_a'] = b2_obj.angle
+class Box2DLog(CsvLog):
+  def __init__(self, world, **kwargs):
+    super().__init__(**kwargs)
+    self._world = world
 
-  vel = b2_obj.linearVelocity
-  state[name + '.vel_x'] = vel[0]
-  state[name + '.vel_y'] = vel[1]
-  state[name + '.vel_a'] = b2_obj.angularVelocity
-  return state
+  def add_world_state(self, step):
+    state = {'step': step}
+    state.update(box2d_state.dynamic_world_state(self._world))
+    self.add(state)
+
 
 

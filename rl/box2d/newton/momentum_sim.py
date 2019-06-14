@@ -20,47 +20,41 @@ Prediction:
 - v2_t: velocity of object 2 at time t
 """
 
-import numpy as np
-
 from rl.box2d.app import framework
 from rl.box2d.newton import box2d_log
+from rl.box2d.newton import box2d_state
 
-from Box2D import b2
+
+WORLD_STATE_JSON = """
+{
+  'gravity': [0, 0],
+  'objects': {
+    'obj1': {
+      'position': [-10, 0],
+      'velocity': [10, 0]
+    },
+    'obj2': {
+      'position': [10, 0],
+      'vertices_scale': 2
+    }
+  }
+}
+""".replace("'", '"')
 
 
 class MomentumSim(framework.Framework):
   name = 'Momentum Simulation'
   description = 'Demonstrates conservation of momentum'
 
-  # Play area range is [-20, 20] x [-20, 20].
-  _PLAY_AREA_SIZE = np.array([40, 40])
+  def __init__(self, world_state_json=WORLD_STATE_JSON):
+    super().__init__(screen_size=(800, 1000))
 
-  def __init__(self):
-    super().__init__(gravity=(0, 0), screen_size=(800, 1000))
+    world_state = box2d_state.WorldState.from_json(world_state_json)
+    world_state.construct(self.world)
 
-    # Initial conditions.
-    self._obj1 = self._create_object((-10, 0))
-    self._obj2 = self._create_object(pos=(10, 0), size=(2, 2))
-    self._apply_impulse(self._obj1, [120, 0])
-
-    self._log = box2d_log.CsvLog(log_dir='~/code/data/newton/momentum/')
-    self.log_state()
-
-  def _unit_to_world(self, unit_coords):
-    return self._PLAY_AREA_SIZE * (unit_coords - 0.5)
-
-  def _create_object(self, pos=(0, 0), size=(2, 2)):
-    body = self.world.CreateDynamicBody(
-        position=pos, angle=0, linearDamping=0.5, angularDamping=1)
-    w, h = size[0] / 2, size[1] / 2
-    body.CreatePolygonFixture(
-        vertices=[(-w, -h), (-w, h), (w, h), (w, -h)], density=1, friction=0.3,
-        restitution=1)
-    return body
-
-  def _apply_impulse(self, body, impulse):
-    body.ApplyLinearImpulse(b2.vec2(impulse), body.worldCenter, wake=True)
-
+    self._log = box2d_log.Box2DLog(
+        self.world, log_dir='~/code/data/newton/momentum/')
+    self._log.add_world_state(self.stepCount)
 
   def Step(self, settings):
     """Called upon every step.
@@ -72,31 +66,9 @@ class MomentumSim(framework.Framework):
     If placed at the end, it will cause the physics step to happen after your code.
     """
     super().Step(settings)
-
-    self.log_state()
-
-  def log_state(self):
-    state = {'step': self.stepCount}
-    state.update(box2d_log.object_state(self._obj1, '1'))
-    state.update(box2d_log.object_state(self._obj2, '2'))
-    self._log.add(state)
+    self._log.add_world_state(self.stepCount)
 
   def BeginContact(self, contact):
-    print(contact)
-
-  def ShapeDestroyed(self, shape):
-    """
-    Callback indicating 'shape' has been destroyed.
-    """
-    pass
-
-  def _is_type(self, fixture, category_mask):
-    return (fixture.filterData.categoryBits & category_mask) > 0
-
-  def JointDestroyed(self, joint):
-    """
-    The joint passed in was removed.
-    """
     pass
 
   def OnExit(self):
