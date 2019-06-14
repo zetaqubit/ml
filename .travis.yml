@@ -6,4 +6,4 @@ cache:
   - pip
   - "~/code/data/mnist"
 script: 
-  - python -m unittest discover -p '*_test.py'
+  - pytest -v
