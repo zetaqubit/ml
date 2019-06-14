@@ -6,4 +6,4 @@ cache:
   - pip
   - "~/code/data/mnist"
 script: 
-  - pytest -v
+  - python -m pytest -v
