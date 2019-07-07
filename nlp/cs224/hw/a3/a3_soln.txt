@@ -1,0 +1,23 @@
+1.
+ a.
+  i.
+     m serves as a low-pass filter on the gradient. Gradient contributions that fluctuate
+     between mini-batches cancel each other out, while consistent gradient directions
+     accumulate over time.
+
+  ii.
+     params that have relatively smaller gradients will get larger updates. This helps
+     normalize the size of the updates across all params.
+ b.
+  i.
+     \gamma = 1 / p_{drop}
+
+     E[h_{drop}]_i = p_{drop} * h
+  ii.
+     Applying dropout during training regularizes weights to encourage neurons to represent
+     concepts without over-relying on other neurons in the layer. During evaluation, not
+     applying dropout has the effect of ensembling multiple subnetworks with dropout applied.
+       
+
+
+
